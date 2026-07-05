@@ -7,25 +7,31 @@
 
 import SwiftUI
 import SwiftData
+import SwDesignSystem
 
 @main
 struct softworkApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    @StateObject private var health = HealthKitService()
 
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([MetricSnapshot.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
 
+    init() {
+        SwTheme.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(health: health)
+                .environmentObject(health)
+                .tint(SwTheme.primaryColor)
         }
         .modelContainer(sharedModelContainer)
     }

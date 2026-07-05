@@ -2,34 +2,83 @@
 //  softworkTests.swift
 //  softworkTests
 //
-//  Created by Aaron McGrath on 2026-07-04.
+//  Pure-logic tests: HR zone boundaries, time-in-zone bucketing, HR-max resolver.
 //
 
 import XCTest
+@testable import softwork
 
 final class softworkTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    // MARK: - HRZone boundaries
+
+    func testZoneBoundaries() {
+        XCTAssertEqual(HRZone.zone(forPercent: 40), .z1)   // sub-rest reads as Z1
+        XCTAssertEqual(HRZone.zone(forPercent: 55), .z1)
+        XCTAssertEqual(HRZone.zone(forPercent: 60), .z2)   // inclusive lower bound
+        XCTAssertEqual(HRZone.zone(forPercent: 65), .z2)
+        XCTAssertEqual(HRZone.zone(forPercent: 70), .z3)
+        XCTAssertEqual(HRZone.zone(forPercent: 85), .z4)
+        XCTAssertEqual(HRZone.zone(forPercent: 90), .z5)
+        XCTAssertEqual(HRZone.zone(forPercent: 105), .z5)  // over max still Z5
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    // MARK: - Time-in-zone bucketing
+
+    func testZoneDistributionAttributesTimeToEarlierSample() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        // hrMax = 200 → 120 bpm = 60% (Z2), 180 bpm = 90% (Z5).
+        let samples: [(date: Date, bpm: Int)] = [
+            (t0, 120),                              // 10s in Z2
+            (t0.addingTimeInterval(10), 180),       // 10s in Z5
+            (t0.addingTimeInterval(20), 180),       // trailing sample, no interval after
+        ]
+        let dist = ZoneBucketer.distribution(samples: samples, hrMax: 200)
+        XCTAssertEqual(dist[.z2] ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(dist[.z5] ?? 0, 10, accuracy: 0.001)
+        XCTAssertNil(dist[.z1])
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    func testZoneDistributionCapsLargeGaps() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        let samples: [(date: Date, bpm: Int)] = [
+            (t0, 120),                              // gap of 300s, capped to 30
+            (t0.addingTimeInterval(300), 120),
+        ]
+        let dist = ZoneBucketer.distribution(samples: samples, hrMax: 200, maxGap: 30)
+        XCTAssertEqual(dist[.z2] ?? 0, 30, accuracy: 0.001)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testZoneDistributionSortsUnorderedInput() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        let samples: [(date: Date, bpm: Int)] = [
+            (t0.addingTimeInterval(10), 180),
+            (t0, 120),
+        ]
+        let dist = ZoneBucketer.distribution(samples: samples, hrMax: 200)
+        XCTAssertEqual(dist[.z2] ?? 0, 10, accuracy: 0.001)
     }
 
+    func testZoneDistributionEmptyForBadInput() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        XCTAssertTrue(ZoneBucketer.distribution(samples: [(t0, 120)], hrMax: 200).isEmpty)
+        XCTAssertTrue(ZoneBucketer.distribution(samples: [(t0, 120), (t0, 130)], hrMax: 0).isEmpty)
+    }
+
+    // MARK: - HR max resolver
+
+    func testEffectiveHRMaxOverrideWins() {
+        XCTAssertEqual(HealthKitService.effectiveHRMax(override: 185, age: 30), 185)
+    }
+
+    func testEffectiveHRMaxFromAge() {
+        XCTAssertEqual(HealthKitService.effectiveHRMax(override: 0, age: 40), 180)
+    }
+
+    func testEffectiveHRMaxFallback() {
+        XCTAssertEqual(HealthKitService.effectiveHRMax(override: 0, age: nil),
+                       HealthKitService.fallbackHRMax)
+        XCTAssertEqual(HealthKitService.effectiveHRMax(override: 0, age: 200),
+                       HealthKitService.fallbackHRMax)   // implausible age → fallback
+    }
 }
