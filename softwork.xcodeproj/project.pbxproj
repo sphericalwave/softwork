@@ -215,7 +215,7 @@
 			mainGroup = AFB5C3292FF9AF4D00A7C2F6;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				AFD5010A2FF9AF5100A7C2F6 /* XCLocalSwiftPackageReference "SwDesignSystem" */,
+				AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AFB5C3332FF9AF4D00A7C2F6 /* Products */;
@@ -290,17 +290,21 @@
 		};
 /* End PBXTargetDependency section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		AFD5010A2FF9AF5100A7C2F6 /* XCLocalSwiftPackageReference "SwDesignSystem" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../Frameworks/UI/SwDesignSystem;
+/* Begin XCRemoteSwiftPackageReference section */
+		AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sphericalwave/SwDesignSystem.git";
+			requirement = {
+				kind = branch;
+				branch = main;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		AFD5010B2FF9AF5100A7C2F6 /* SwDesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AFD5010A2FF9AF5100A7C2F6 /* XCLocalSwiftPackageReference "SwDesignSystem" */;
+			package = AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */;
 			productName = SwDesignSystem;
 		};
 /* End XCSwiftPackageProductDependency section */
