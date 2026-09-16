@@ -1,0 +1,15 @@
+{
+  "originHash" : "e8400a7cc18e9f523671e4fda914a7d1a53cafca415e69bc172bde52f7d2d411",
+  "pins" : [
+    {
+      "identity" : "swdesignsystem",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/SwDesignSystem.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "8c8b217c94e5fd59960d44d23007189183c363fb"
+      }
+    }
+  ],
+  "version" : 3
+}
