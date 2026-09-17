@@ -23,9 +23,6 @@ final class HealthKitService: ObservableObject {
 
     @Published private(set) var isAuthorized = false
 
-    /// Fallback HR max used only when neither an override nor an age is available.
-    nonisolated static let fallbackHRMax = 190
-
     // MARK: - Authorization
 
     private var readTypes: Set<HKObjectType> {
@@ -89,20 +86,13 @@ final class HealthKitService: ObservableObject {
         return today[Calendar.current.startOfDay(for: Date())]
     }
 
-    // MARK: - Age / HR max
+    // MARK: - Age
 
     /// Age in whole years from the HealthKit date-of-birth characteristic, or nil.
     func ageInYears() -> Int? {
         guard let components = try? store.dateOfBirthComponents(),
               let birthDate = Calendar.current.date(from: components) else { return nil }
         return Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year
-    }
-
-    /// Resolved HR max: a positive override wins; else 220 − age; else the fallback.
-    nonisolated static func effectiveHRMax(override: Int, age: Int?) -> Int {
-        if override > 0 { return override }
-        if let age, age > 0, age < 120 { return 220 - age }
-        return fallbackHRMax
     }
 
     // MARK: - Internals

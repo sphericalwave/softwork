@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SessionEngine
 
 struct ZoneBar: View {
     let zoneSeconds: [HRZone: TimeInterval]

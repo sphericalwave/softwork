@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import SessionEngine
 
 struct RootView: View {
     @EnvironmentObject private var health: HealthKitService
@@ -15,6 +16,7 @@ struct RootView: View {
 
     @AppStorage("flowSelectedTab") private var selectedTab = 0
     @AppStorage("hrMaxOverride") private var hrMaxOverride = 0
+    @AppStorage("maxHRFormula") private var maxHRFormula: MaxHRFormula = .tanaka
     @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.month.rawValue
 
     @StateObject private var viewModel: DashboardViewModel
@@ -53,6 +55,6 @@ struct RootView: View {
 
     private func refresh() async {
         let window = DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .month
-        await viewModel.refresh(window: window, hrMaxOverride: hrMaxOverride, context: modelContext)
+        await viewModel.refresh(window: window, hrMaxOverride: hrMaxOverride, formula: maxHRFormula, context: modelContext)
     }
 }

@@ -8,6 +8,7 @@
 
 import SwiftUI
 import HealthKit
+import SessionEngine
 
 struct IntensityView: View {
     @ObservedObject var viewModel: DashboardViewModel

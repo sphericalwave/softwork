@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SessionEngine
 
 struct SettingsView: View {
     let health: HealthKitService
@@ -13,9 +14,10 @@ struct SettingsView: View {
     let onChange: () async -> Void
 
     @AppStorage("hrMaxOverride") private var hrMaxOverride = 0
+    @AppStorage("maxHRFormula") private var formula: MaxHRFormula = .tanaka
 
     private var autoHRMax: Int {
-        HealthKitService.effectiveHRMax(override: 0, age: resolvedAge)
+        MaxHeartRate.effective(override: 0, age: resolvedAge, formula: formula)
     }
 
     var body: some View {
@@ -34,14 +36,20 @@ struct SettingsView: View {
                         Button("Use age-based (\(autoHRMax))") { hrMaxOverride = 0 }
                             .font(.caption)
                     }
+                    Picker("Estimate", selection: $formula) {
+                        ForEach(MaxHRFormula.allCases) { Text($0.label).tag($0) }
+                    }
                 } header: {
                     Text("Max Heart Rate")
                 } footer: {
                     Text(resolvedAge == nil
-                         ? "Set an override, or add your birth date in Health for an age-based estimate (220 − age)."
-                         : "Auto estimate is 220 − age (\(autoHRMax) bpm). Enter a value to override.")
+                         ? "Set an override, or add your birth date in Health for an age-based estimate (\(formula.label))."
+                         : "Auto estimate is \(formula.label) = \(autoHRMax) bpm. Enter a value to override.")
                 }
                 .onChange(of: hrMaxOverride) { _, _ in
+                    Task { await onChange() }
+                }
+                .onChange(of: formula) { _, _ in
                     Task { await onChange() }
                 }
 

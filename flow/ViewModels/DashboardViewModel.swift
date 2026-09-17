@@ -10,6 +10,7 @@ import Foundation
 import SwiftData
 import HealthKit
 import Combine
+import SessionEngine
 
 @MainActor
 final class DashboardViewModel: ObservableObject {
@@ -57,7 +58,7 @@ final class DashboardViewModel: ObservableObject {
         todayActiveEnergy = todayActiveEnergy ?? snapshot.todayActiveEnergy
     }
 
-    func refresh(window: TimeWindow, hrMaxOverride: Int, context: ModelContext) async {
+    func refresh(window: TimeWindow, hrMaxOverride: Int, formula: MaxHRFormula, context: ModelContext) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -74,7 +75,7 @@ final class DashboardViewModel: ObservableObject {
             hrvTrend = try await hrvSeries
             activeEnergyTrend = try await energySeries
 
-            let hrMax = HealthKitService.effectiveHRMax(override: hrMaxOverride, age: health.ageInYears())
+            let hrMax = MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: formula)
             intensities = try await intensityService.recentIntensities(days: window.rawValue, hrMax: hrMax)
 
             saveSnapshot(context: context)

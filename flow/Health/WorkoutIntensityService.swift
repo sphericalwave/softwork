@@ -8,6 +8,7 @@
 
 import Foundation
 import HealthKit
+import SessionEngine
 
 /// A workout plus its time-in-zone breakdown and average intensity.
 struct WorkoutIntensity: Identifiable {

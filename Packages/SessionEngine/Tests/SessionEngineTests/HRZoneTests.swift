@@ -30,6 +30,20 @@ final class HRZoneTests: XCTestCase {
         XCTAssertNil(dist[.z4])
     }
 
+    func testZoneDistributionSplitsAcrossZones() {
+        let t0 = Date(timeIntervalSince1970: 0)
+        // hrMax 200 → 120 bpm = 60% (Z2), 180 bpm = 90% (Z5)
+        let samples: [(date: Date, bpm: Int)] = [
+            (t0, 120),
+            (t0.addingTimeInterval(10), 180),
+            (t0.addingTimeInterval(20), 180),
+        ]
+        let dist = ZoneBucketer.distribution(samples: samples, hrMax: 200)
+        XCTAssertEqual(dist[.z2] ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(dist[.z5] ?? 0, 10, accuracy: 0.001)
+        XCTAssertNil(dist[.z1])
+    }
+
     func testZoneDistributionCapsLargeGaps() {
         let now = Date()
         let samples: [(date: Date, bpm: Int)] = [

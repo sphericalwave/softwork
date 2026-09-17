@@ -10,17 +10,21 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - name: Pick an available iPhone simulator
+      - name: Test pure packages
         run: |
-          DEVICE=$(xcrun simctl list devices available | grep -oE "iPhone [0-9][^(]*" | head -1 | xargs)
-          echo "SIM_NAME=$DEVICE" >> "$GITHUB_ENV"
-          echo "Using simulator: $DEVICE"
-      - name: Build and run unit tests
-        run: >
-          xcodebuild -project flow.xcodeproj -scheme flow
-          -destination 'platform=iOS Simulator,name=${{ env.SIM_NAME }}'
-          -derivedDataPath .build/dd
-          -only-testing:flowTests test
+          for pkg in Packages/*/; do
+            if [ -d "$pkg/Tests" ]; then
+              echo "::group::$pkg"
+              swift test --package-path "$pkg"
+              echo "::endgroup::"
+            fi
+          done
+      - name: Pure packages import no UI/hardware/cloud frameworks (REQ-ARCH-1)
+        run: |
+          if grep -rlE "^import (SwiftUI|UIKit|AppKit|CoreBluetooth|EventKit|CloudKit|HealthKit|SwiftData|Persistence)" \
+               Packages/SessionEngine/Sources Packages/RulesKit/Sources Packages/PlanningKit/Sources Packages/StatsKit/Sources; then
+            echo "Pure package imports a forbidden module"; exit 1
+          fi
   ui-tests:
     name: ui-tests
     runs-on: macos-26
