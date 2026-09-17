@@ -1,13 +1,22 @@
 {
-  "originHash" : "f8520a9cd9351e8610a37d01db46bfec0bf612cad565f7976a89b1cf9f159409",
+  "originHash" : "c91fe30baec6defb82312b367f746e66b7810ef0672219ac335c2886677bd962",
   "pins" : [
+    {
+      "identity" : "audioclipkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/AudioClipKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "de071d0e192f0b4581db6102c85505f15aef5523"
+      }
+    },
     {
       "identity" : "heartratekit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sphericalwave/HeartRateKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "080f438430eaa84f081e56f24e275e3a4e01dd1f"
+        "revision" : "fce947ca0bf81f16379d174e696775e37c3d4108"
       }
     },
     {
@@ -17,6 +26,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "8c8b217c94e5fd59960d44d23007189183c363fb"
+      }
+    },
+    {
+      "identity" : "workoutaudiokit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/WorkoutAudioKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "88cf54620a38d1f273b36fa0ff6f7c543b09cf6b"
       }
     }
   ],

@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import SessionEngine
+import AthleteFeatures
 
 struct RootView: View {
     @EnvironmentObject private var health: HealthKitService
@@ -25,6 +26,19 @@ struct RootView: View {
         _viewModel = StateObject(wrappedValue: DashboardViewModel(health: health))
     }
 
+    /// The Simulator has no Bluetooth, so sparring there runs on scripted heart rate.
+    private static let simulatedHR: Bool = {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }()
+
+    private var hrMax: Int {
+        MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: maxHRFormula)
+    }
+
     private var windowBinding: Binding<DashboardViewModel.TimeWindow> {
         Binding(
             get: { DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .month },
@@ -34,6 +48,10 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            SparView(hrMax: hrMax, simulatedHR: Self.simulatedHR)
+                .tabItem { Label("Spar", systemImage: "figure.martial.arts") }
+                .tag(3)
+
             OverviewView(viewModel: viewModel, window: windowBinding, refresh: refresh)
                 .tabItem { Label("Overview", systemImage: "heart.text.square") }
                 .tag(0)

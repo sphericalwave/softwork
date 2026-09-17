@@ -1,5 +1,5 @@
 {
-  "originHash" : "97e700af140622f118f1bbefe2236fef6b3cd34ff712c53f2c71ded7cdd460da",
+  "originHash" : "f9803fc2eb11cf60e9126043fdf376238b41f8469ecc9bc0088b3467ed83b878",
   "pins" : [
     {
       "identity" : "audioclipkit",
@@ -8,15 +8,6 @@
       "state" : {
         "branch" : "main",
         "revision" : "de071d0e192f0b4581db6102c85505f15aef5523"
-      }
-    },
-    {
-      "identity" : "heartratekit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sphericalwave/HeartRateKit.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "fce947ca0bf81f16379d174e696775e37c3d4108"
       }
     },
     {

@@ -12,16 +12,17 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../SessionEngine"),
-        .package(path: "../RulesKit"),
-        .package(path: "../PlanningKit"),
-        .package(path: "../Persistence"),
-        .package(path: "../PeerKit"),
         .package(path: "../AlertKit"),
+        .package(url: "https://github.com/sphericalwave/HeartRateKit.git", branch: "main"),
     ],
     targets: [
         .target(
             name: "AthleteFeatures",
-            dependencies: ["SessionEngine", "RulesKit", "PlanningKit", "Persistence", "PeerKit", "AlertKit"]
+            dependencies: [
+                "SessionEngine",
+                "AlertKit",
+                .product(name: "HeartRateKit", package: "HeartRateKit"),
+            ]
         ),
     ]
 )

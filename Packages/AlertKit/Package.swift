@@ -10,7 +10,10 @@ let package = Package(
     products: [
         .library(name: "AlertKit", targets: ["AlertKit"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sphericalwave/WorkoutAudioKit.git", branch: "main"),
+    ],
     targets: [
-        .target(name: "AlertKit"),
+        .target(name: "AlertKit", dependencies: ["WorkoutAudioKit"]),
     ]
 )

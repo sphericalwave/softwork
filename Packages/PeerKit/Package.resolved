@@ -1,5 +1,5 @@
 {
-  "originHash" : "1b6bb854714d2453b97803dad3435c3fce150fc10b60414171305d52eab2049f",
+  "originHash" : "19e0b1eab257546bc949940fdb3807d1083ec0de0d6900e9e552b64569042114",
   "pins" : [
     {
       "identity" : "heartratekit",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/sphericalwave/HeartRateKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "080f438430eaa84f081e56f24e275e3a4e01dd1f"
+        "revision" : "fce947ca0bf81f16379d174e696775e37c3d4108"
       }
     }
   ],

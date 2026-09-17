@@ -2,10 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>flow connects to your Bluetooth heart rate strap so it can call a timeout when you go over your sparring ceiling.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>flow reads your HRV, active energy, resting heart rate, and workout heart-rate data to show your big-picture health trends.</string>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>bluetooth-central</string>
 		<string>remote-notification</string>
 	</array>
 </dict>
