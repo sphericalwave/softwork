@@ -1,6 +1,6 @@
 //
 //  ZoneBar.swift
-//  softwork
+//  flow
 //
 //  Horizontal stacked bar of time-in-zone proportions.
 //

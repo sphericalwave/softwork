@@ -1,6 +1,6 @@
 //
 //  HRZone.swift
-//  softwork
+//  flow
 //
 //  The five classic heart-rate training zones, expressed as % of HR max.
 //  Pure and testable — no HealthKit here.

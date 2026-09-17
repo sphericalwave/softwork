@@ -1,7 +1,7 @@
-# softwork
+# flow
 
 Big-picture health dashboard for iOS: HRV, active energy, and workout HR-zone
-intensity from HealthKit. Read-only — softwork writes nothing back to Health.
+intensity from HealthKit. Read-only — flow writes nothing back to Health.
 
 ## Features
 
@@ -30,8 +30,8 @@ intensity from HealthKit. Read-only — softwork writes nothing back to Health.
 ## Project structure
 
 ```
-softwork/
-├── softworkApp.swift
+flow/
+├── flowApp.swift
 ├── Health/
 │   ├── HealthKitService.swift        # read-only HK access: HRV/active energy/resting HR
 │   ├── HRZone.swift                  # the 5 HR zones + pure time-bucketing (ZoneBucketer)
@@ -43,8 +43,8 @@ softwork/
 
 ## Build
 
-1. Open `softwork.xcodeproj` in Xcode.
-2. Select the **softwork** scheme.
+1. Open `flow.xcodeproj` in Xcode.
+2. Select the **flow** scheme.
 3. Choose a destination — HealthKit data is limited on the simulator, so a
    physical device with real Health history gives the most useful result.
 4. ⌘R.

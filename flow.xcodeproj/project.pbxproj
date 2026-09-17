@@ -16,50 +16,54 @@
 			containerPortal = AFB5C32A2FF9AF4D00A7C2F6 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = AFB5C3312FF9AF4D00A7C2F6;
-			remoteInfo = softwork;
+			remoteInfo = flow;
 		};
 		AFB5C34E2FF9AF5100A7C2F6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AFB5C32A2FF9AF4D00A7C2F6 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = AFB5C3312FF9AF4D00A7C2F6;
-			remoteInfo = softwork;
+			remoteInfo = flow;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AFB5C3322FF9AF4D00A7C2F6 /* softwork.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = softwork.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AFB5C3432FF9AF5100A7C2F6 /* softworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = softworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		AFB5C34D2FF9AF5100A7C2F6 /* softworkUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = softworkUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFB5C3322FF9AF4D00A7C2F6 /* flow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = flow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFB5C3432FF9AF5100A7C2F6 /* flowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = flowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFB5C34D2FF9AF5100A7C2F6 /* flowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = flowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AFB5C3552FF9AF5100A7C2F6 /* Exceptions for "softwork" folder in "softwork" target */ = {
+		AFB5C3552FF9AF5100A7C2F6 /* Exceptions for "flow" folder in "flow" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = AFB5C3312FF9AF4D00A7C2F6 /* softwork */;
+			target = AFB5C3312FF9AF4D00A7C2F6 /* flow */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AFB5C3342FF9AF4D00A7C2F6 /* softwork */ = {
+		AFB5C3342FF9AF4D00A7C2F6 /* flow */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				AFB5C3552FF9AF5100A7C2F6 /* Exceptions for "softwork" folder in "softwork" target */,
+				AFB5C3552FF9AF5100A7C2F6 /* Exceptions for "flow" folder in "flow" target */,
 			);
-			path = softwork;
+			path = flow;
 			sourceTree = "<group>";
 		};
-		AFB5C3462FF9AF5100A7C2F6 /* softworkTests */ = {
+		AFB5C3462FF9AF5100A7C2F6 /* flowTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = softworkTests;
+			exceptions = (
+			);
+			path = flowTests;
 			sourceTree = "<group>";
 		};
-		AFB5C3502FF9AF5100A7C2F6 /* softworkUITests */ = {
+		AFB5C3502FF9AF5100A7C2F6 /* flowUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = softworkUITests;
+			exceptions = (
+			);
+			path = flowUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -93,9 +97,9 @@
 		AFB5C3292FF9AF4D00A7C2F6 = {
 			isa = PBXGroup;
 			children = (
-				AFB5C3342FF9AF4D00A7C2F6 /* softwork */,
-				AFB5C3462FF9AF5100A7C2F6 /* softworkTests */,
-				AFB5C3502FF9AF5100A7C2F6 /* softworkUITests */,
+				AFB5C3342FF9AF4D00A7C2F6 /* flow */,
+				AFB5C3462FF9AF5100A7C2F6 /* flowTests */,
+				AFB5C3502FF9AF5100A7C2F6 /* flowUITests */,
 				AFB5C3332FF9AF4D00A7C2F6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -103,9 +107,9 @@
 		AFB5C3332FF9AF4D00A7C2F6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AFB5C3322FF9AF4D00A7C2F6 /* softwork.app */,
-				AFB5C3432FF9AF5100A7C2F6 /* softworkTests.xctest */,
-				AFB5C34D2FF9AF5100A7C2F6 /* softworkUITests.xctest */,
+				AFB5C3322FF9AF4D00A7C2F6 /* flow.app */,
+				AFB5C3432FF9AF5100A7C2F6 /* flowTests.xctest */,
+				AFB5C34D2FF9AF5100A7C2F6 /* flowUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -113,9 +117,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AFB5C3312FF9AF4D00A7C2F6 /* softwork */ = {
+		AFB5C3312FF9AF4D00A7C2F6 /* flow */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AFB5C3562FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softwork" */;
+			buildConfigurationList = AFB5C3562FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flow" */;
 			buildPhases = (
 				AFB5C32E2FF9AF4D00A7C2F6 /* Sources */,
 				AFB5C32F2FF9AF4D00A7C2F6 /* Frameworks */,
@@ -126,19 +130,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AFB5C3342FF9AF4D00A7C2F6 /* softwork */,
+				AFB5C3342FF9AF4D00A7C2F6 /* flow */,
 			);
-			name = softwork;
+			name = flow;
 			packageProductDependencies = (
 				AFD5010B2FF9AF5100A7C2F6 /* SwDesignSystem */,
 			);
-			productName = softwork;
-			productReference = AFB5C3322FF9AF4D00A7C2F6 /* softwork.app */;
+			productName = flow;
+			productReference = AFB5C3322FF9AF4D00A7C2F6 /* flow.app */;
 			productType = "com.apple.product-type.application";
 		};
-		AFB5C3422FF9AF5100A7C2F6 /* softworkTests */ = {
+		AFB5C3422FF9AF5100A7C2F6 /* flowTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AFB5C35B2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softworkTests" */;
+			buildConfigurationList = AFB5C35B2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flowTests" */;
 			buildPhases = (
 				AFB5C33F2FF9AF5100A7C2F6 /* Sources */,
 				AFB5C3402FF9AF5100A7C2F6 /* Frameworks */,
@@ -150,18 +154,16 @@
 				AFB5C3452FF9AF5100A7C2F6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				AFB5C3462FF9AF5100A7C2F6 /* softworkTests */,
+				AFB5C3462FF9AF5100A7C2F6 /* flowTests */,
 			);
-			name = softworkTests;
-			packageProductDependencies = (
-			);
-			productName = softworkTests;
-			productReference = AFB5C3432FF9AF5100A7C2F6 /* softworkTests.xctest */;
+			name = flowTests;
+			productName = flowTests;
+			productReference = AFB5C3432FF9AF5100A7C2F6 /* flowTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		AFB5C34C2FF9AF5100A7C2F6 /* softworkUITests */ = {
+		AFB5C34C2FF9AF5100A7C2F6 /* flowUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AFB5C35E2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softworkUITests" */;
+			buildConfigurationList = AFB5C35E2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flowUITests" */;
 			buildPhases = (
 				AFB5C3492FF9AF5100A7C2F6 /* Sources */,
 				AFB5C34A2FF9AF5100A7C2F6 /* Frameworks */,
@@ -173,13 +175,11 @@
 				AFB5C34F2FF9AF5100A7C2F6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				AFB5C3502FF9AF5100A7C2F6 /* softworkUITests */,
+				AFB5C3502FF9AF5100A7C2F6 /* flowUITests */,
 			);
-			name = softworkUITests;
-			packageProductDependencies = (
-			);
-			productName = softworkUITests;
-			productReference = AFB5C34D2FF9AF5100A7C2F6 /* softworkUITests.xctest */;
+			name = flowUITests;
+			productName = flowUITests;
+			productReference = AFB5C34D2FF9AF5100A7C2F6 /* flowUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -205,7 +205,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AFB5C32D2FF9AF4D00A7C2F6 /* Build configuration list for PBXProject "softwork" */;
+			buildConfigurationList = AFB5C32D2FF9AF4D00A7C2F6 /* Build configuration list for PBXProject "flow" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -222,9 +222,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AFB5C3312FF9AF4D00A7C2F6 /* softwork */,
-				AFB5C3422FF9AF5100A7C2F6 /* softworkTests */,
-				AFB5C34C2FF9AF5100A7C2F6 /* softworkUITests */,
+				AFB5C3312FF9AF4D00A7C2F6 /* flow */,
+				AFB5C3422FF9AF5100A7C2F6 /* flowTests */,
+				AFB5C34C2FF9AF5100A7C2F6 /* flowUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -280,34 +280,15 @@
 /* Begin PBXTargetDependency section */
 		AFB5C3452FF9AF5100A7C2F6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AFB5C3312FF9AF4D00A7C2F6 /* softwork */;
+			target = AFB5C3312FF9AF4D00A7C2F6 /* flow */;
 			targetProxy = AFB5C3442FF9AF5100A7C2F6 /* PBXContainerItemProxy */;
 		};
 		AFB5C34F2FF9AF5100A7C2F6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AFB5C3312FF9AF4D00A7C2F6 /* softwork */;
+			target = AFB5C3312FF9AF4D00A7C2F6 /* flow */;
 			targetProxy = AFB5C34E2FF9AF5100A7C2F6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sphericalwave/SwDesignSystem.git";
-			requirement = {
-				kind = branch;
-				branch = main;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AFD5010B2FF9AF5100A7C2F6 /* SwDesignSystem */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */;
-			productName = SwDesignSystem;
-		};
-/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AFB5C3572FF9AF5100A7C2F6 /* Debug */ = {
@@ -315,7 +296,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = softwork/softwork.entitlements;
+				CODE_SIGN_ENTITLEMENTS = flow/flow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TPR24Z5M9G;
@@ -324,14 +305,14 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = softwork/Info.plist;
+				INFOPLIST_FILE = flow/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchScreen_BackgroundColor = AccentColor;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_UILaunchScreen_BackgroundColor = AccentColor;
 				INFOPLIST_KEY_UILaunchScreen_Image = LaunchLogo;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
@@ -342,7 +323,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softwork;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
@@ -363,7 +344,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = softwork/softwork.entitlements;
+				CODE_SIGN_ENTITLEMENTS = flow/flow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TPR24Z5M9G;
@@ -372,14 +353,14 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = softwork/Info.plist;
+				INFOPLIST_FILE = flow/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchScreen_BackgroundColor = AccentColor;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_UILaunchScreen_BackgroundColor = AccentColor;
 				INFOPLIST_KEY_UILaunchScreen_Image = LaunchLogo;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
@@ -390,7 +371,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softwork;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
@@ -533,7 +514,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softworkTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flowTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -543,7 +524,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/softwork.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/softwork";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/flow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/flow";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Debug;
@@ -559,7 +540,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softworkTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flowTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -569,7 +550,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/softwork.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/softwork";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/flow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/flow";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
@@ -584,7 +565,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softworkUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flowUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -594,7 +575,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = softwork;
+				TEST_TARGET_NAME = flow;
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Debug;
@@ -609,7 +590,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.softworkUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sphericalwave.jiujitsu.flowUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -619,7 +600,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = softwork;
+				TEST_TARGET_NAME = flow;
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
@@ -627,7 +608,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AFB5C32D2FF9AF4D00A7C2F6 /* Build configuration list for PBXProject "softwork" */ = {
+		AFB5C32D2FF9AF4D00A7C2F6 /* Build configuration list for PBXProject "flow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AFB5C3592FF9AF5100A7C2F6 /* Debug */,
@@ -636,7 +617,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AFB5C3562FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softwork" */ = {
+		AFB5C3562FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AFB5C3572FF9AF5100A7C2F6 /* Debug */,
@@ -645,7 +626,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AFB5C35B2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softworkTests" */ = {
+		AFB5C35B2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flowTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AFB5C35C2FF9AF5100A7C2F6 /* Debug */,
@@ -654,7 +635,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AFB5C35E2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "softworkUITests" */ = {
+		AFB5C35E2FF9AF5100A7C2F6 /* Build configuration list for PBXNativeTarget "flowUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AFB5C35F2FF9AF5100A7C2F6 /* Debug */,
@@ -664,6 +645,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sphericalwave/SwDesignSystem.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AFD5010B2FF9AF5100A7C2F6 /* SwDesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AFD5010A2FF9AF5100A7C2F6 /* XCRemoteSwiftPackageReference "SwDesignSystem" */;
+			productName = SwDesignSystem;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AFB5C32A2FF9AF4D00A7C2F6 /* Project object */;
 }

@@ -1,6 +1,6 @@
 //
 //  RootView.swift
-//  softwork
+//  flow
 //
 //  Root tab container. Selection persists across launches (@AppStorage).
 //
@@ -13,7 +13,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var snapshots: [MetricSnapshot]
 
-    @AppStorage("softworkSelectedTab") private var selectedTab = 0
+    @AppStorage("flowSelectedTab") private var selectedTab = 0
     @AppStorage("hrMaxOverride") private var hrMaxOverride = 0
     @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.month.rawValue
 

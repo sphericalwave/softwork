@@ -1,14 +1,14 @@
 //
-//  softworkTests.swift
-//  softworkTests
+//  flowTests.swift
+//  flowTests
 //
 //  Pure-logic tests: HR zone boundaries, time-in-zone bucketing, HR-max resolver.
 //
 
 import XCTest
-@testable import softwork
+@testable import flow
 
-final class softworkTests: XCTestCase {
+final class flowTests: XCTestCase {
 
     // MARK: - HRZone boundaries
 

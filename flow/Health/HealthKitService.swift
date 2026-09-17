@@ -1,6 +1,6 @@
 //
 //  HealthKitService.swift
-//  softwork
+//  flow
 //
 //  Read-only HealthKit access for the big-picture dashboard: daily HRV,
 //  active energy, resting HR aggregations plus latest values and age.

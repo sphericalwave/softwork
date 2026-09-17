@@ -1,6 +1,6 @@
 //
 //  IntensityView.swift
-//  softwork
+//  flow
 //
 //  Workout heart rate as a percentage of HR max: an aggregate zone bar plus
 //  a per-workout breakdown.

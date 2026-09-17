@@ -1,6 +1,6 @@
 //
-//  softworkApp.swift
-//  softwork
+//  flowApp.swift
+//  flow
 //
 //  Created by Aaron McGrath on 2026-07-04.
 //
@@ -10,7 +10,7 @@ import SwiftData
 import SwDesignSystem
 
 @main
-struct softworkApp: App {
+struct flowApp: App {
     @StateObject private var health = HealthKitService()
 
     var sharedModelContainer: ModelContainer = {

@@ -1,13 +1,13 @@
 //
-//  softworkUITestsLaunchTests.swift
-//  softworkUITests
+//  flowUITestsLaunchTests.swift
+//  flowUITests
 //
 //  Created by Aaron McGrath on 2026-07-04.
 //
 
 import XCTest
 
-final class softworkUITestsLaunchTests: XCTestCase {
+final class flowUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

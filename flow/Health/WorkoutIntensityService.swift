@@ -1,6 +1,6 @@
 //
 //  WorkoutIntensityService.swift
-//  softwork
+//  flow
 //
 //  Reads recent workouts and their heart-rate samples, then buckets time into
 //  HR zones as a percentage of HR max. This is the app's distinctive capability.

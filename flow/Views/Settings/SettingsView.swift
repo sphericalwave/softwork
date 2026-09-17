@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  softwork
+//  flow
 //
 //  HR max configuration and HealthKit access.
 //

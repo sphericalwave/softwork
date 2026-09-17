@@ -17,10 +17,10 @@ jobs:
           echo "Using simulator: $DEVICE"
       - name: Build and run unit tests
         run: >
-          xcodebuild -project softwork.xcodeproj -scheme softwork
+          xcodebuild -project flow.xcodeproj -scheme flow
           -destination 'platform=iOS Simulator,name=${{ env.SIM_NAME }}'
           -derivedDataPath .build/dd
-          -only-testing:softworkTests test
+          -only-testing:flowTests test
   ui-tests:
     name: ui-tests
     runs-on: macos-26
@@ -33,7 +33,7 @@ jobs:
           echo "Using simulator: $DEVICE"
       - name: Build and run UI tests
         run: >
-          xcodebuild -project softwork.xcodeproj -scheme softwork
+          xcodebuild -project flow.xcodeproj -scheme flow
           -destination 'platform=iOS Simulator,name=${{ env.SIM_NAME }}'
           -derivedDataPath .build/dd
-          -only-testing:softworkUITests test
+          -only-testing:flowUITests test

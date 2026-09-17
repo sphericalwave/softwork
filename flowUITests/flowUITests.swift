@@ -1,13 +1,13 @@
 //
-//  softworkUITests.swift
-//  softworkUITests
+//  flowUITests.swift
+//  flowUITests
 //
 //  Created by Aaron McGrath on 2026-07-04.
 //
 
 import XCTest
 
-final class softworkUITests: XCTestCase {
+final class flowUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

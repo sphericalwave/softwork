@@ -1,6 +1,6 @@
 //
 //  TrendChart.swift
-//  softwork
+//  flow
 //
 //  A titled trend of a daily metric over the selected window (native Swift Charts).
 //
