@@ -16,20 +16,33 @@
 
 import Foundation
 import SwiftData
+import Persistence
 
 nonisolated enum FlowSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
     static var models: [any PersistentModel.Type] { [MetricSnapshot.self] }
 }
 
+/// Adds training-session metadata. New entities only, every attribute
+/// optional or defaulted, so V1 → V2 is a lightweight migration and existing
+/// MetricSnapshot rows are untouched.
+nonisolated enum FlowSchemaV2: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        [MetricSnapshot.self, TrainingSessionRecord.self, SparringRoundRecord.self]
+    }
+}
+
 nonisolated enum FlowMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [FlowSchemaV1.self] }
-    static var stages: [MigrationStage] { [] }
+    static var schemas: [any VersionedSchema.Type] { [FlowSchemaV1.self, FlowSchemaV2.self] }
+    static var stages: [MigrationStage] {
+        [.lightweight(fromVersion: FlowSchemaV1.self, toVersion: FlowSchemaV2.self)]
+    }
 }
 
 enum AppModelContainer {
     static func make() -> ModelContainer {
-        let schema = Schema(versionedSchema: FlowSchemaV1.self)
+        let schema = Schema(versionedSchema: FlowSchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             return try ModelContainer(for: schema,

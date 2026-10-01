@@ -4,29 +4,38 @@
 //
 //  Polar-style heart rate trace: the bpm line over horizontal %-of-max zone
 //  bands, bpm on the left axis, % of max on the right, elapsed time below.
-//  The ceiling and resume lines are labelled so they read without color.
+//  Sparring rounds are shaded, each with its own ceiling and resume lines,
+//  labelled so they read without color.
 //
 
 #if os(iOS)
 import SwiftUI
 import Charts
 import SessionEngine
+import ZoneUI
 
 struct HeartRateChart: View {
     let points: [HRPoint]
     let hrMax: Int
-    let zone: ResolvedZone
+    let rounds: [SparringRound]
     let timeDomain: ClosedRange<TimeInterval>
 
     /// Readings further apart than this are drawn as separate segments, so a
     /// signal dropout shows as a gap instead of a misleading straight line.
-    private static let gap: TimeInterval = 5
+    private static let gap = HRPoint.maxGap
+    /// Long sessions are averaged down to about this many points per segment
+    /// run, which keeps a two-hour chart cheap to redraw every second.
+    private static let maxDrawnPoints = 600
     /// Banded like Polar: 50–100% of max in 10% steps; below 50% is unshaded.
     private static let bandZones: [HRZone] = [.z1, .z2, .z3, .z4, .z5]
     private static let tickPercents: [Double] = [50, 60, 70, 80, 90, 100]
 
     private var visible: [HRPoint] {
         points.filter { timeDomain.contains($0.t) }
+    }
+
+    private var visibleRounds: [SparringRound] {
+        rounds.filter { $0.end >= timeDomain.lowerBound && $0.start <= timeDomain.upperBound }
     }
 
     private var bpmDomain: ClosedRange<Double> {
@@ -59,6 +68,7 @@ struct HeartRateChart: View {
     private var chart: some View {
         let domain = bpmDomain
         let segments = segments
+        let rounds = visibleRounds
         return Chart {
             ForEach(Self.bandZones) { band in
                 RectangleMark(
@@ -69,7 +79,35 @@ struct HeartRateChart: View {
                                  ? domain.upperBound
                                  : Double(hrMax) * (band.lowerPercent + 10) / 100)
                 )
-                .foregroundStyle(band.bandColor.opacity(0.35))
+                .foregroundStyle(band.color.opacity(0.35))
+            }
+
+            ForEach(rounds.indices, id: \.self) { i in
+                let round = rounds[i]
+                let start = max(round.start, timeDomain.lowerBound)
+                let end = min(round.end, timeDomain.upperBound)
+                let isLast = i == rounds.count - 1
+                RectangleMark(
+                    xStart: .value("Round start", start),
+                    xEnd: .value("Round end", end),
+                    yStart: .value("Low", domain.lowerBound),
+                    yEnd: .value("High", domain.upperBound)
+                )
+                .foregroundStyle(Color.primary.opacity(0.12))
+                RuleMark(xStart: .value("Round start", start), xEnd: .value("Round end", end),
+                         y: .value("Ceiling", Double(round.ceilingBPM)))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .annotation(position: .top, alignment: .leading, spacing: 2) {
+                        if isLast { lineLabel("Ceiling \(round.ceilingBPM)", color: .red) }
+                    }
+                RuleMark(xStart: .value("Round start", start), xEnd: .value("Round end", end),
+                         y: .value("Resume", Double(round.resetBPM)))
+                    .foregroundStyle(.green)
+                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .annotation(position: .bottom, alignment: .leading, spacing: 2) {
+                        if isLast { lineLabel("Resume \(round.resetBPM)", color: .green) }
+                    }
             }
 
             ForEach(segments.indices, id: \.self) { s in
@@ -84,19 +122,6 @@ struct HeartRateChart: View {
                     .interpolationMethod(.monotone)
                 }
             }
-
-            RuleMark(y: .value("Ceiling", Double(zone.ceilingBPM)))
-                .foregroundStyle(.red)
-                .lineStyle(StrokeStyle(lineWidth: 2))
-                .annotation(position: .top, alignment: .leading, spacing: 2) {
-                    lineLabel("Ceiling \(zone.ceilingBPM)", color: .red)
-                }
-            RuleMark(y: .value("Resume", Double(zone.resetBPM)))
-                .foregroundStyle(.green)
-                .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                .annotation(position: .bottom, alignment: .leading, spacing: 2) {
-                    lineLabel("Resume \(zone.resetBPM)", color: .green)
-                }
         }
         .chartXScale(domain: timeDomain)
         .chartYScale(domain: domain)
@@ -125,16 +150,26 @@ struct HeartRateChart: View {
         .chartPlotStyle { $0.clipped() }
     }
 
+    /// Unbroken runs of readings, averaged down when there are too many to draw.
     private var segments: [[HRPoint]] {
+        let points = visible
+        let stride = max(Int((Double(points.count) / Double(Self.maxDrawnPoints)).rounded(.up)), 1)
         var result: [[HRPoint]] = []
-        for point in visible {
+        for point in points {
             if let last = result.last?.last, point.t - last.t <= Self.gap {
                 result[result.count - 1].append(point)
             } else {
                 result.append([point])
             }
         }
-        return result
+        guard stride > 1 else { return result }
+        return result.map { run in
+            Swift.stride(from: 0, to: run.count, by: stride).map { i in
+                let chunk = run[i..<min(i + stride, run.count)]
+                let mean = Double(chunk.reduce(0) { $0 + $1.bpm }) / Double(chunk.count)
+                return HRPoint(t: chunk.first!.t, bpm: Int(mean.rounded()))
+            }
+        }
     }
 
     private func lineLabel(_ text: String, color: Color) -> some View {
@@ -146,10 +181,14 @@ struct HeartRateChart: View {
     }
 
     private var accessibilitySummary: String {
-        let range = visible.isEmpty
+        let bpms = visible.map(\.bpm)
+        var text = bpms.isEmpty
             ? "No heart rate recorded"
-            : "Heart rate from \(visible.map(\.bpm).min()!) to \(visible.map(\.bpm).max()!) bpm"
-        return "\(range). Ceiling \(zone.ceilingBPM), resume \(zone.resetBPM)."
+            : "Heart rate from \(bpms.min()!) to \(bpms.max()!) bpm"
+        if let last = visibleRounds.last {
+            text += ". Ceiling \(last.ceilingBPM), resume \(last.resetBPM)"
+        }
+        return text + "."
     }
 
     /// Elapsed time as m:ss, or h:mm:ss past an hour.
@@ -158,20 +197,6 @@ struct HeartRateChart: View {
         return s >= 3600
             ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60)
             : String(format: "%d:%02d", s / 60, s % 60)
-    }
-}
-
-private extension HRZone {
-    /// Mirrors the zone palette used on the Intensity tab.
-    var bandColor: Color {
-        switch self {
-        case .z0: return .gray
-        case .z1: return .blue
-        case .z2: return .green
-        case .z3: return .yellow
-        case .z4: return .orange
-        case .z5: return .red
-        }
     }
 }
 #endif

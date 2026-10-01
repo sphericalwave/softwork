@@ -15,7 +15,7 @@ import AlertKit
 struct LiveSparringView: View {
     let model: SoloSparringModel
     @AppStorage("sparNoFlashing") private var noFlashing = false
-    @State private var confirmingEnd = false
+    @State private var confirmingStop = false
 
     private var band: LiveBand? {
         guard let bpm = model.bpm, let zone = model.zone else { return nil }
@@ -38,11 +38,9 @@ struct LiveSparringView: View {
                 header
                 Spacer()
                 heartRate
-                if let zone = model.zone {
-                    HeartRateChart(points: model.points, hrMax: model.sessionHRMax,
-                                   zone: zone, timeDomain: timeDomain)
-                        .frame(height: 240)
-                }
+                HeartRateChart(points: model.points, hrMax: model.sessionHRMax,
+                               rounds: model.chartRounds, timeDomain: timeDomain)
+                    .frame(height: 240)
                 Spacer()
                 if model.signal != .good {
                     SignalLabel(signal: model.signal)
@@ -55,8 +53,10 @@ struct LiveSparringView: View {
 
             overlay
         }
-        .confirmationDialog("End this session?", isPresented: $confirmingEnd, titleVisibility: .visible) {
-            Button("End Session", role: .destructive) { model.endSession() }
+        .confirmationDialog("Stop sparring?", isPresented: $confirmingStop, titleVisibility: .visible) {
+            Button("Stop Sparring", role: .destructive) { model.stopSparring() }
+        } message: {
+            Text("Training keeps recording.")
         }
     }
 
@@ -68,7 +68,7 @@ struct LiveSparringView: View {
                 .font(.title3.monospacedDigit())
                 .accessibilityLabel("\(model.timeoutCount) timeouts")
             Spacer()
-            Button("End") { confirmingEnd = true }
+            Button("Stop") { confirmingStop = true }
                 .font(.headline)
                 .buttonStyle(.bordered)
                 .controlSize(.large)
@@ -128,7 +128,7 @@ struct LiveSparringView: View {
             .accessibilityElement(children: .combine)
         case .resuming(let n):
             FullScreenMessage(title: "\(n)", subtitle: "Reset. Resuming…", systemImage: "checkmark.circle.fill", tint: .green)
-        case .lobby, .sparring:
+        case .lobby, .training, .sparring:
             EmptyView()
         }
     }
