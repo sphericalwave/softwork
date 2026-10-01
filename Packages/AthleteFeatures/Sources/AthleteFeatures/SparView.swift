@@ -2,7 +2,8 @@
 //  SparView.swift
 //  AthleteFeatures
 //
-//  Entry point for single-device sparring: lobby, then the live screen.
+//  Entry point for single-device sparring: lobby, the live screen, then the
+//  session summary.
 //
 
 #if os(iOS)
@@ -29,7 +30,11 @@ public struct SparView: View {
         Group {
             if let model {
                 if model.stage == .lobby {
-                    SparLobbyView(model: model)
+                    if let summary = model.summary {
+                        SparSummaryView(summary: summary, onDone: { model.dismissSummary() })
+                    } else {
+                        SparLobbyView(model: model)
+                    }
                 } else {
                     LiveSparringView(model: model)
                 }

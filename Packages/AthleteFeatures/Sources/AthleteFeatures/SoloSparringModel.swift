@@ -33,14 +33,23 @@ public final class SoloSparringModel {
     public private(set) var signal: HRSignalState = .disconnected
     public private(set) var timeoutCount = 0
     public private(set) var zone: ResolvedZone?
+    /// The max HR `zone` was resolved against.
+    public private(set) var sessionHRMax = 0
     public private(set) var prescription = SparringPrescription()
     /// Seconds left in the minimum timeout, while in `.timeout`.
     public private(set) var minTimeoutRemaining = 0
+    /// Good-signal readings since sparring began (after the countdown).
+    public private(set) var points: [HRPoint] = []
+    /// Seconds since sparring began.
+    public private(set) var elapsed: TimeInterval = 0
+    /// The session that just ended, shown until dismissed.
+    public private(set) var summary: SparringSummary?
 
     private let source: HeartRateSource
     private let alerts: AlertOutput
     private var controller: TimeoutController?
     private var evaluator = HRSignalEvaluator()
+    /// Set when the countdown finishes, so session time excludes it.
     private var sessionStart = Date()
     private var timeoutStart: Date?
     private var readingStarted = false
@@ -85,16 +94,29 @@ public final class SoloSparringModel {
         guard stage == .lobby, let zone = prescription.resolve(hrMax: hrMax) else { return }
         self.prescription = prescription
         self.zone = zone
+        sessionHRMax = hrMax
         controller = TimeoutController(prescription: prescription, zones: [zone])
         timeoutCount = 0
-        sessionStart = Date()
+        points = []
+        elapsed = 0
+        summary = nil
         stage = .countdown(3)
     }
 
     public func endSession() {
         alerts.stopAlarm()
+        if isRunning, let zone {
+            summary = SparringSummary(startedAt: sessionStart,
+                                      duration: Date().timeIntervalSince(sessionStart),
+                                      points: points, zone: zone, hrMax: sessionHRMax,
+                                      timeoutCount: timeoutCount)
+        }
         controller = nil
         stage = .lobby
+    }
+
+    public func dismissSummary() {
+        summary = nil
     }
 
     public func testAlarm() {
@@ -128,8 +150,10 @@ public final class SoloSparringModel {
         evaluator.ingest(sample)
         bpm = sample.bpm
         signal = evaluator.state(now: sample.timestamp, connected: isConnected)
-        guard stage == .sparring || stage == .timeout else { return }
+        guard isRunning else { return }
         let t = sample.timestamp.timeIntervalSince(sessionStart)
+        if signal == .good { points.append(HRPoint(t: t, bpm: sample.bpm)) }
+        guard stage == .sparring || stage == .timeout else { return }
         let signals = controller?.ingest(athlete: 0, bpm: sample.bpm, signalGood: signal == .good, t: t) ?? []
         handle(signals)
     }
@@ -137,10 +161,16 @@ public final class SoloSparringModel {
     private func tick(now: Date) {
         signal = evaluator.state(now: now, connected: isConnected)
         if signal != .good && signal != .noContact { bpm = nil }
+        if isRunning { elapsed = now.timeIntervalSince(sessionStart) }
 
         switch stage {
         case .countdown(let n):
-            stage = n > 1 ? .countdown(n - 1) : .sparring
+            if n > 1 {
+                stage = .countdown(n - 1)
+            } else {
+                sessionStart = now
+                stage = .sparring
+            }
         case .resuming(let n):
             if n > 1 {
                 stage = .resuming(n - 1)
@@ -174,6 +204,14 @@ public final class SoloSparringModel {
                 timeoutStart = nil
                 stage = .resuming(3)
             }
+        }
+    }
+
+    /// Past the countdown and not yet ended.
+    private var isRunning: Bool {
+        switch stage {
+        case .sparring, .timeout, .resuming: return true
+        case .lobby, .countdown: return false
         }
     }
 

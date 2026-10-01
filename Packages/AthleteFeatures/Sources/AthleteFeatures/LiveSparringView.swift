@@ -2,7 +2,7 @@
 //  LiveSparringView.swift
 //  AthleteFeatures
 //
-//  Readable at a glance from the mat: huge bpm, where it sits against the
+//  Readable at a glance from the mat: huge bpm, a live trace against the
 //  ceiling, and every state carried by text + icon, never color alone
 //  (REQ-ALERT-5/6).
 //
@@ -22,6 +22,14 @@ struct LiveSparringView: View {
         return zone.band(for: bpm)
     }
 
+    /// The live chart follows the last few minutes so recent spikes stay legible.
+    private static let window: TimeInterval = 5 * 60
+
+    private var timeDomain: ClosedRange<TimeInterval> {
+        let upper = max(model.elapsed, 60)
+        return max(upper - Self.window, 0)...upper
+    }
+
     var body: some View {
         ZStack {
             background.ignoresSafeArea()
@@ -31,8 +39,9 @@ struct LiveSparringView: View {
                 Spacer()
                 heartRate
                 if let zone = model.zone {
-                    CeilingGauge(bpm: model.bpm, zone: zone)
-                        .padding(.horizontal)
+                    HeartRateChart(points: model.points, hrMax: model.sessionHRMax,
+                                   zone: zone, timeDomain: timeDomain)
+                        .frame(height: 240)
                 }
                 Spacer()
                 if model.signal != .good {
@@ -69,7 +78,7 @@ struct LiveSparringView: View {
     private var heartRate: some View {
         VStack(spacing: 8) {
             Text(model.bpm.map(String.init) ?? "--")
-                .font(.system(size: 140, weight: .bold, design: .rounded))
+                .font(.system(size: 120, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
@@ -134,62 +143,6 @@ private struct BandLabel: View {
         case .inTarget: Label("In target", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
         case .nearCeiling: Label("Near ceiling", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
         case .overCeiling: Label("Over ceiling", systemImage: "flame.fill").foregroundStyle(.red)
-        }
-    }
-}
-
-/// Current bpm on a track from the target floor to just past the ceiling,
-/// with the reset and ceiling marked.
-private struct CeilingGauge: View {
-    let bpm: Int?
-    let zone: ResolvedZone
-
-    private var lower: Double { Double(zone.floorBPM - 15) }
-    private var upper: Double { Double(zone.ceilingBPM + 15) }
-
-    private func fraction(_ value: Int) -> CGFloat {
-        CGFloat(min(max((Double(value) - lower) / (upper - lower), 0), 1))
-    }
-
-    var body: some View {
-        VStack(spacing: 6) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.2))
-                    if let bpm {
-                        Capsule()
-                            .fill(color(for: zone.band(for: bpm)))
-                            .frame(width: geo.size.width * fraction(bpm))
-                    }
-                    marker(at: fraction(zone.resetBPM), width: geo.size.width, color: .green)
-                    marker(at: fraction(zone.ceilingBPM), width: geo.size.width, color: .red)
-                }
-            }
-            .frame(height: 24)
-            HStack {
-                Text("reset \(zone.resetBPM)").foregroundStyle(.green)
-                Spacer()
-                Text("ceiling \(zone.ceilingBPM)").foregroundStyle(.red)
-            }
-            .font(.caption.weight(.semibold).monospacedDigit())
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Ceiling \(zone.ceilingBPM), reset \(zone.resetBPM)")
-    }
-
-    private func marker(at x: CGFloat, width: CGFloat, color: Color) -> some View {
-        Rectangle()
-            .fill(color)
-            .frame(width: 3, height: 32)
-            .offset(x: x * width - 1.5)
-    }
-
-    private func color(for band: LiveBand) -> Color {
-        switch band {
-        case .belowTarget: return .blue
-        case .inTarget: return .green
-        case .nearCeiling: return .orange
-        case .overCeiling: return .red
         }
     }
 }
