@@ -1,0 +1,15 @@
+{
+  "originHash" : "f62248b5c1b81ba146c96d1501eae01543ee76c7f9585535d3c4ede75e9746a1",
+  "pins" : [
+    {
+      "identity" : "heartratekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/HeartRateKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "fce947ca0bf81f16379d174e696775e37c3d4108"
+      }
+    }
+  ],
+  "version" : 3
+}

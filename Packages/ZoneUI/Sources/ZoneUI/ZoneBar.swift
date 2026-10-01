@@ -1,6 +1,6 @@
 //
 //  ZoneBar.swift
-//  flow
+//  ZoneUI
 //
 //  Horizontal stacked bar of time-in-zone proportions.
 //
@@ -8,14 +8,18 @@
 import SwiftUI
 import SessionEngine
 
-struct ZoneBar: View {
+public struct ZoneBar: View {
     let zoneSeconds: [HRZone: TimeInterval]
+
+    public init(zoneSeconds: [HRZone: TimeInterval]) {
+        self.zoneSeconds = zoneSeconds
+    }
 
     private var total: TimeInterval {
         max(zoneSeconds.values.reduce(0, +), 1)
     }
 
-    var body: some View {
+    public var body: some View {
         GeometryReader { geo in
             HStack(spacing: 0) {
                 ForEach(HRZone.allCases) { zone in
@@ -35,10 +39,14 @@ struct ZoneBar: View {
 }
 
 /// Legend + minutes for each zone, used under the aggregate bar.
-struct ZoneLegend: View {
+public struct ZoneLegend: View {
     let zoneSeconds: [HRZone: TimeInterval]
 
-    var body: some View {
+    public init(zoneSeconds: [HRZone: TimeInterval]) {
+        self.zoneSeconds = zoneSeconds
+    }
+
+    public var body: some View {
         VStack(spacing: 4) {
             ForEach(HRZone.allCases) { zone in
                 HStack(spacing: 8) {

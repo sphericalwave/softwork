@@ -25,6 +25,18 @@ jobs:
                Packages/SessionEngine/Sources Packages/RulesKit/Sources Packages/PlanningKit/Sources Packages/StatsKit/Sources; then
             echo "Pure package imports a forbidden module"; exit 1
           fi
+  macos-build:
+    name: macos-build
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app for macOS (REQ-ARCH-4)
+        run: >
+          xcodebuild -project flow.xcodeproj -scheme flow
+          -destination 'platform=macOS'
+          -derivedDataPath .build/dd
+          CODE_SIGNING_ALLOWED=NO
+          build
   ui-tests:
     name: ui-tests
     runs-on: macos-26

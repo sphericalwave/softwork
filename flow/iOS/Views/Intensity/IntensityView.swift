@@ -9,6 +9,7 @@
 import SwiftUI
 import HealthKit
 import SessionEngine
+import ZoneUI
 
 struct IntensityView: View {
     @ObservedObject var viewModel: DashboardViewModel

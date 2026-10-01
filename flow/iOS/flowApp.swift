@@ -13,15 +13,7 @@ import SwDesignSystem
 struct flowApp: App {
     @StateObject private var health = HealthKitService()
 
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([MetricSnapshot.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    var sharedModelContainer: ModelContainer = AppModelContainer.make()
 
     init() {
         SwTheme.configure()

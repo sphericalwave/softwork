@@ -1,6 +1,6 @@
 //
 //  HRZone+Color.swift
-//  flow
+//  ZoneUI
 //
 //  Zone colors live on the UI side; SessionEngine stays free of SwiftUI.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import SessionEngine
 
 extension HRZone {
-    var color: Color {
+    public var color: Color {
         switch self {
         case .z0: return .gray
         case .z1: return .blue
