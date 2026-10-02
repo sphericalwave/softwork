@@ -155,6 +155,10 @@ public final class SoloSparringModel {
         Task { await save(summary, record: record, buffer: buffer) }
     }
 
+    /// Size of the crash-safety buffer for the session on screen; 0 once
+    /// it's been deleted after a successful HealthKit save.
+    public var bufferBytes: Int { buffer?.byteCount ?? 0 }
+
     public func dismissSummary() {
         summary = nil
         saveState = .idle

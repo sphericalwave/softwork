@@ -42,6 +42,11 @@ final class HRBufferFile {
         }
     }
 
+    /// Current size on disk; 0 once deleted.
+    var byteCount: Int {
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int) ?? 0
+    }
+
     func read() -> [(date: Date, bpm: Int)] {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         return text.split(separator: "\n").compactMap { line in

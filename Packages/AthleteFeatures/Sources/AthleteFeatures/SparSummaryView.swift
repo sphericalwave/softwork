@@ -68,6 +68,8 @@ struct SparSummaryView: View {
                     }
 
                     HealthSaveStatus(state: model.saveState, kind: summary.kind, retry: { model.retrySave() })
+
+                    StorageEstimate(summary: summary, bufferBytes: model.bufferBytes)
                 }
                 .padding()
             }
@@ -121,6 +123,46 @@ private struct HealthSaveStatus: View {
                     .buttonStyle(.bordered)
             }
         }
+    }
+}
+
+/// Rough per-session footprint. Health doesn't expose its storage, so that
+/// side is samples × an assumed per-sample cost; the buffer file is measured.
+private struct StorageEstimate: View {
+    let summary: TrainingSummary
+    let bufferBytes: Int
+
+    /// Assumed Health database cost per sample (value, dates, source,
+    /// indexes). An estimate, not a measurement.
+    private static let bytesPerHealthSample = 100
+    /// SwiftData row for the session plus its rounds — a few hundred bytes.
+    private static let metadataBytes = 1_000
+
+    private var healthSamples: Int {
+        summary.points.count + summary.energy.count + summary.rounds.count + 1
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Storage")
+                .font(.headline)
+            LabeledContent("In Health") {
+                Text("≈ \(Self.format(healthSamples * Self.bytesPerHealthSample)) · \(healthSamples.formatted()) samples")
+            }
+            LabeledContent("On this phone") {
+                Text("≈ \(Self.format(Self.metadataBytes + bufferBytes))")
+            }
+            Text(bufferBytes > 0
+                 ? "Includes a \(Self.format(bufferBytes)) backup of your readings, deleted once the session is saved to Health."
+                 : "Session details only; your readings live in Health.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .monospacedDigit()
+    }
+
+    private static func format(_ bytes: Int) -> String {
+        Int64(bytes).formatted(.byteCount(style: .file))
     }
 }
 
