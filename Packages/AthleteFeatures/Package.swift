@@ -13,6 +13,8 @@ let package = Package(
     dependencies: [
         .package(path: "../SessionEngine"),
         .package(path: "../AlertKit"),
+        .package(path: "../Persistence"),
+        .package(path: "../ZoneUI"),
         .package(url: "https://github.com/sphericalwave/HeartRateKit.git", branch: "main"),
     ],
     targets: [
@@ -21,6 +23,8 @@ let package = Package(
             dependencies: [
                 "SessionEngine",
                 "AlertKit",
+                "Persistence",
+                "ZoneUI",
                 .product(name: "HeartRateKit", package: "HeartRateKit"),
             ]
         ),
