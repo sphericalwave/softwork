@@ -11,6 +11,7 @@ import SwiftData
 import HealthKit
 import Combine
 import SessionEngine
+import DiagnosticsKit
 
 @MainActor
 final class DashboardViewModel: ObservableObject {
@@ -80,6 +81,7 @@ final class DashboardViewModel: ObservableObject {
 
             saveSnapshot(context: context)
         } catch {
+            ErrorLog.shared.error("Dashboard", "Dashboard load failed", error: error)
             errorMessage = error.localizedDescription
         }
     }
