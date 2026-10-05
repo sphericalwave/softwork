@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import SwDesignSystem
 import HealthKit
 import SessionEngine
 import ZoneUI
@@ -47,6 +48,9 @@ struct IntensityView: View {
                 .padding()
             }
             .navigationTitle("Intensity")
+            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .refreshable { await refresh() }
         }
     }

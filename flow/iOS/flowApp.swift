@@ -17,6 +17,10 @@ struct flowApp: App {
 
     init() {
         SwTheme.configure()
+        // SwTheme paints segmented controls white with brand-blue labels, a white
+        // slab in dark mode. Keep the brand-blue selected segment; let the rest adapt.
+        UISegmentedControl.appearance().backgroundColor = nil
+        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.label], for: .normal)
     }
 
     var body: some Scene {
