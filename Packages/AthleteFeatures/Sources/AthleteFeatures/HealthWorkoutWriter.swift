@@ -1,0 +1,144 @@
+//
+//  HealthWorkoutWriter.swift
+//  AthleteFeatures
+//
+//  HealthKit is the long-term home of a training session: the workout,
+//  every heart-rate reading, and the estimated active energy. Also reads the
+//  calorie profile (sex, weight, age), with Settings values taking priority.
+//
+
+#if os(iOS)
+import Foundation
+import HealthKit
+import SessionEngine
+
+/// UserDefaults keys shared with the app's Settings screen.
+public enum CalorieSettingsKeys {
+    /// Body weight in kg; 0 means "use Health".
+    public static let weightKg = "calorieWeightKg"
+    /// `CalorieProfile.Sex.rawValue`; empty means "use Health".
+    public static let sex = "calorieSex"
+}
+
+@MainActor
+final class HealthWorkoutWriter {
+    private let store = HKHealthStore()
+    private let heartRate = HKQuantityType(.heartRate)
+    private let activeEnergy = HKQuantityType(.activeEnergyBurned)
+    private let bpmUnit = HKUnit.count().unitDivided(by: .minute())
+
+    enum WriteError: LocalizedError {
+        case unavailable
+        case noWorkout
+
+        var errorDescription: String? {
+            switch self {
+            case .unavailable: return "Health isn't available on this device."
+            case .noWorkout: return "Health didn't return the saved workout."
+            }
+        }
+    }
+
+    func requestAuthorization() async {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let share: Set<HKSampleType> = [HKObjectType.workoutType(), heartRate, activeEnergy]
+        let read: Set<HKObjectType> = [
+            HKQuantityType(.bodyMass),
+            HKCharacteristicType(.biologicalSex),
+            HKCharacteristicType(.dateOfBirth),
+        ]
+        try? await store.requestAuthorization(toShare: share, read: read)
+    }
+
+    /// Settings values first, then Health; nil if sex, weight or age is unknown.
+    func calorieProfile() async -> CalorieProfile? {
+        let defaults = UserDefaults.standard
+        let sex = CalorieProfile.Sex(rawValue: defaults.string(forKey: CalorieSettingsKeys.sex) ?? "")
+            ?? healthSex()
+        let storedWeight = defaults.double(forKey: CalorieSettingsKeys.weightKg)
+        let weight = storedWeight > 0 ? storedWeight : await latestWeightKg()
+        guard let sex, let weight, let age = healthAge() else { return nil }
+        return CalorieProfile(sex: sex, weightKg: weight, age: age)
+    }
+
+    /// Saves the session as a workout. The session id is the sync identifier,
+    /// so a retry after a crash replaces rather than duplicates the workout.
+    func save(_ summary: TrainingSummary, sessionID: UUID) async throws -> UUID {
+        guard HKHealthStore.isHealthDataAvailable() else { throw WriteError.unavailable }
+        let config = HKWorkoutConfiguration()
+        config.activityType = summary.kind.activityType
+        config.locationType = .indoor
+        let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: .local())
+
+        let start = summary.startedAt
+        let end = start.addingTimeInterval(summary.duration)
+        func date(_ t: TimeInterval) -> Date { start.addingTimeInterval(t) }
+
+        _ = try await builder.beginCollection(at: start)
+        var samples: [HKSample] = summary.points.map { point in
+            HKQuantitySample(type: heartRate,
+                             quantity: HKQuantity(unit: bpmUnit, doubleValue: Double(point.bpm)),
+                             start: date(point.t), end: date(point.t))
+        }
+        samples += summary.energy.map { interval in
+            HKQuantitySample(type: activeEnergy,
+                             quantity: HKQuantity(unit: .kilocalorie(), doubleValue: interval.kcal),
+                             start: date(interval.start), end: date(interval.end))
+        }
+        if !samples.isEmpty {
+            _ = try await builder.addSamples(samples)
+        }
+        let segments = summary.rounds.map { round in
+            HKWorkoutEvent(type: .segment,
+                           dateInterval: DateInterval(start: date(round.start), end: date(round.end)),
+                           metadata: nil)
+        }
+        if !segments.isEmpty {
+            _ = try await builder.addWorkoutEvents(segments)
+        }
+        _ = try await builder.addMetadata([
+            HKMetadataKeyIndoorWorkout: true,
+            HKMetadataKeySyncIdentifier: sessionID.uuidString,
+            HKMetadataKeySyncVersion: 1,
+        ])
+        _ = try await builder.endCollection(at: end)
+        guard let workout = try await builder.finishWorkout() else { throw WriteError.noWorkout }
+        return workout.uuid
+    }
+
+    // MARK: - Profile reads
+
+    private func healthSex() -> CalorieProfile.Sex? {
+        switch (try? store.biologicalSex())?.biologicalSex {
+        case .some(.male): return .male
+        case .some(.female): return .female
+        default: return nil
+        }
+    }
+
+    private func healthAge() -> Int? {
+        guard let components = try? store.dateOfBirthComponents(),
+              let birthDate = Calendar.current.date(from: components) else { return nil }
+        return Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year
+    }
+
+    private func latestWeightKg() async -> Double? {
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: HKQuantityType(.bodyMass))],
+            sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
+            limit: 1
+        )
+        let sample = try? await descriptor.result(for: store).first
+        return sample?.quantity.doubleValue(for: .gramUnit(with: .kilo))
+    }
+}
+
+extension WorkoutKind {
+    var activityType: HKWorkoutActivityType {
+        switch self {
+        case .wrestling: return .wrestling
+        case .kickboxing: return .kickboxing
+        }
+    }
+}
+#endif

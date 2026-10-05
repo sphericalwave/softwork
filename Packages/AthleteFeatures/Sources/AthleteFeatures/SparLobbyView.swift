@@ -2,7 +2,8 @@
 //  SparLobbyView.swift
 //  AthleteFeatures
 //
-//  Pre-session checks in the order they matter: strap, ceiling, alarm, start.
+//  Pre-session checks in the order they matter: strap, workout type,
+//  sparring ceiling, alarm, start.
 //
 
 #if os(iOS)
@@ -15,6 +16,7 @@ struct SparLobbyView: View {
 
     @AppStorage("sparCeilingPct") private var ceilingPct = SparringPrescription().ceilingPct
     @AppStorage("sparNoFlashing") private var noFlashing = false
+    @AppStorage("trainingKind") private var kind: WorkoutKind = .wrestling
     @State private var showingPairing = false
 
     private var prescription: SparringPrescription {
@@ -48,6 +50,17 @@ struct SparLobbyView: View {
                 }
 
                 Section {
+                    Picker("Workout", selection: $kind) {
+                        ForEach(WorkoutKind.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Workout")
+                } footer: {
+                    Text("Saved to Health as this workout type when you end the session.")
+                }
+
+                Section {
                     Stepper(value: $ceilingPct, in: 0.72...0.95, step: 0.01) {
                         HStack {
                             Text("Ceiling")
@@ -61,9 +74,9 @@ struct SparLobbyView: View {
                         LabeledContent("Resume at or below", value: "\(zone.resetBPM) bpm")
                     }
                 } header: {
-                    Text("Prescription")
+                    Text("Sparring Prescription")
                 } footer: {
-                    Text("Over the ceiling for \(prescription.triggerSeconds) s calls a timeout. Breathe down below the reset for \(prescription.resetHoldSeconds) s to resume. Max HR \(model.hrMax) bpm.")
+                    Text("Applies to each sparring round; you can change it between rounds. Over the ceiling for \(prescription.triggerSeconds) s calls a timeout. Breathe down below the reset for \(prescription.resetHoldSeconds) s to resume. Max HR \(model.hrMax) bpm.")
                 }
 
                 Section {
@@ -81,20 +94,22 @@ struct SparLobbyView: View {
 
                 Section {
                     Button {
-                        model.start(with: prescription)
+                        model.startTraining(kind: kind)
                     } label: {
-                        Text("Start Sparring")
+                        Text("Start Training")
                             .font(.headline)
                             .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(zone == nil || !sensorReady)
+                    .disabled(!sensorReady)
                     .listRowBackground(Color.clear)
                 } footer: {
                     if !sensorReady {
                         Text(model.signal == .noContact
                              ? "Your strap isn't reading skin contact. Wet the electrodes and tighten it."
                              : "Connect your strap to start.")
+                    } else {
+                        Text("Records your heart rate until you end the session. Start sparring rounds from the session screen.")
                     }
                 }
             }

@@ -11,6 +11,7 @@
 		AFD5010C2FF9AF5100A7C2F6 /* SwDesignSystem in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = AFD5010B2FF9AF5100A7C2F6 /* SwDesignSystem */; };
 		FB84B4F5724EF66A6B201124 /* AthleteFeatures in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = E8319FB2874A0D3A4885AC55 /* AthleteFeatures */; };
 		3C1E7A52D9B04F6A8E21B0C1 /* ZoneUI in Frameworks */ = {isa = PBXBuildFile; productRef = 3C1E7A52D9B04F6A8E21B0C3 /* ZoneUI */; };
+		5E7A1C40B2D94F1E8A3C6D01 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 5E7A1C40B2D94F1E8A3C6D03 /* Persistence */; };
 		1B73E6E37789E4010B0BF0D6 /* DiagnosticsKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6589D5A9A51D495557656B3E /* DiagnosticsKit */; };
 /* End PBXBuildFile section */
 
@@ -104,6 +105,7 @@
 				40DB5D07A49A1BD5C323A09C /* SessionEngine in Frameworks */,
 				FB84B4F5724EF66A6B201124 /* AthleteFeatures in Frameworks */,
 				3C1E7A52D9B04F6A8E21B0C1 /* ZoneUI in Frameworks */,
+				5E7A1C40B2D94F1E8A3C6D01 /* Persistence in Frameworks */,
 				1B73E6E37789E4010B0BF0D6 /* DiagnosticsKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -160,6 +162,7 @@
 				B5B0EA54159D013C2B28EB70 /* SessionEngine */,
 				E8319FB2874A0D3A4885AC55 /* AthleteFeatures */,
 				3C1E7A52D9B04F6A8E21B0C3 /* ZoneUI */,
+				5E7A1C40B2D94F1E8A3C6D03 /* Persistence */,
 				6589D5A9A51D495557656B3E /* DiagnosticsKit */,
 			);
 			productName = flow;
@@ -224,6 +227,7 @@
 				578109652D664B3840982537 /* XCLocalSwiftPackageReference "SessionEngine" */,
 				9FDE2D8EBF900ED6D23FF980 /* XCLocalSwiftPackageReference "AthleteFeatures" */,
 				3C1E7A52D9B04F6A8E21B0C2 /* XCLocalSwiftPackageReference "ZoneUI" */,
+				5E7A1C40B2D94F1E8A3C6D02 /* XCLocalSwiftPackageReference "Persistence" */,
 				C927220D6643E7BC84DA9F27 /* XCRemoteSwiftPackageReference "DiagnosticsKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -593,6 +597,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/ZoneUI;
 		};
+		5E7A1C40B2D94F1E8A3C6D02 /* XCLocalSwiftPackageReference "Persistence" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Persistence;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -634,6 +642,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 3C1E7A52D9B04F6A8E21B0C2 /* XCLocalSwiftPackageReference "ZoneUI" */;
 			productName = ZoneUI;
+		};
+		5E7A1C40B2D94F1E8A3C6D03 /* Persistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E7A1C40B2D94F1E8A3C6D02 /* XCLocalSwiftPackageReference "Persistence" */;
+			productName = Persistence;
 		};
 		6589D5A9A51D495557656B3E /* DiagnosticsKit */ = {
 			isa = XCSwiftPackageProductDependency;
