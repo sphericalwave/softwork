@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwDesignSystem
 import SessionEngine
 import AthleteFeatures
 import DiagnosticsKit
@@ -114,6 +115,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 

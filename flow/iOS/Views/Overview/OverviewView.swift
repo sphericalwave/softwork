@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwDesignSystem
 
 struct OverviewView: View {
     @ObservedObject var viewModel: DashboardViewModel
@@ -34,6 +35,9 @@ struct OverviewView: View {
                 .padding()
             }
             .navigationTitle("Overview")
+            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .refreshable { await refresh() }
             .overlay(alignment: .top) {
                 if let message = viewModel.errorMessage {
