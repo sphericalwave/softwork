@@ -8,6 +8,7 @@
 import SwiftUI
 import SessionEngine
 import AthleteFeatures
+import DiagnosticsKit
 
 struct SettingsView: View {
     let health: HealthKitService
@@ -103,6 +104,12 @@ struct SettingsView: View {
                             try? await health.requestAuthorization()
                             await onChange()
                         }
+                    }
+                }
+
+                Section {
+                    NavigationLink { DiagnosticsView() } label: {
+                        Label("Error Log", systemImage: "ladybug")
                     }
                 }
             }
