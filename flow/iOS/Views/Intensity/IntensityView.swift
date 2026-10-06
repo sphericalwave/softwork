@@ -114,7 +114,6 @@ extension HKWorkoutActivityType {
         case .coreTraining: return "Core"
         case .stairClimbing: return "Stairs"
         case .mixedCardio: return "Cardio"
-        case .martialArts: return "Martial Arts"
         case .wrestling: return "Wrestling"
         case .kickboxing: return "Kickboxing"
         default: return "Workout"
