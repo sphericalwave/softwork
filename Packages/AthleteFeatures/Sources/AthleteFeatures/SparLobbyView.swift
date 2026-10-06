@@ -16,7 +16,7 @@ struct SparLobbyView: View {
 
     @AppStorage("sparCeilingPct") private var ceilingPct = SparringPrescription().ceilingPct
     @AppStorage("sparNoFlashing") private var noFlashing = false
-    @AppStorage("trainingKind") private var kind: WorkoutKind = .wrestling
+    @AppStorage("trainingKind") private var kind: WorkoutKind = .jiujitsu
     @State private var showingPairing = false
 
     private var prescription: SparringPrescription {
