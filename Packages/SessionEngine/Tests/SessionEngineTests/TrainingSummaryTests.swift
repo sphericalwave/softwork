@@ -6,7 +6,7 @@ final class TrainingSummaryTests: XCTestCase {
     private func summary(_ bpms: [(TimeInterval, Int)],
                          rounds: [SparringRound] = [],
                          profile: CalorieProfile? = nil) -> TrainingSummary {
-        TrainingSummary(startedAt: Date(), duration: 60, kind: .wrestling, hrMax: 200,
+        TrainingSummary(startedAt: Date(), duration: 60, kind: .jiujitsu, hrMax: 200,
                         points: bpms.map { HRPoint(t: $0.0, bpm: $0.1) },
                         rounds: rounds, profile: profile)
     }

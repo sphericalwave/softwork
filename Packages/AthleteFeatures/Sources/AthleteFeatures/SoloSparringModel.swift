@@ -52,7 +52,7 @@ public final class SoloSparringModel {
     public private(set) var stage: Stage = .lobby
     public private(set) var bpm: Int?
     public private(set) var signal: HRSignalState = .disconnected
-    public private(set) var kind: WorkoutKind = .wrestling
+    public private(set) var kind: WorkoutKind = .jiujitsu
     /// The max HR the session's bands and rounds are resolved against.
     public private(set) var sessionHRMax = 0
     /// Good-signal readings since the session began.
@@ -224,7 +224,7 @@ public final class SoloSparringModel {
                                 rounds: [SparringRound], profile: CalorieProfile?) -> TrainingSummary {
         TrainingSummary(startedAt: record.startedAt,
                         duration: max(end.timeIntervalSince(record.startedAt), 0),
-                        kind: WorkoutKind(rawValue: record.kindRaw) ?? .wrestling,
+                        kind: WorkoutKind(rawValue: record.kindRaw) ?? .jiujitsu,
                         hrMax: record.hrMax, points: points, rounds: rounds, profile: profile)
     }
 
@@ -262,7 +262,7 @@ public final class SoloSparringModel {
             } else {
                 record = open
                 buffer = file
-                kind = WorkoutKind(rawValue: open.kindRaw) ?? .wrestling
+                kind = WorkoutKind(rawValue: open.kindRaw) ?? .jiujitsu
                 sessionHRMax = open.hrMax
                 sessionStart = open.startedAt
                 points = restored

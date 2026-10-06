@@ -137,7 +137,6 @@ extension WorkoutKind {
     var activityType: HKWorkoutActivityType {
         switch self {
         case .jiujitsu: return .wrestling
-        case .wrestling: return .wrestling
         case .kickboxing: return .kickboxing
         }
     }
