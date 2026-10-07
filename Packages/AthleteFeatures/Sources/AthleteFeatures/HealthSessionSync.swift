@@ -61,6 +61,18 @@ public final class HealthSessionSync {
         return .pending
     }
 
+    /// Rebuilds a past session's end-of-session summary: readings from its
+    /// buffer file while it still has one, otherwise from Health.
+    func summary(of record: TrainingSessionRecord, store: SessionStore) async -> TrainingSummary {
+        let end = record.endedAt ?? Date()
+        var points = Self.points(HRBufferFile(sessionID: record.id).read(), since: record.startedAt)
+        if points.isEmpty {
+            points = await health.heartRatePoints(from: record.startedAt, to: end)
+        }
+        return TrainingSummary(record: record, endingAt: end, points: points,
+                               rounds: store.rounds(for: record.id), profile: await health.calorieProfile())
+    }
+
     // MARK: - Retry queue
 
     /// Ends an abandoned open session, then saves every ended session that

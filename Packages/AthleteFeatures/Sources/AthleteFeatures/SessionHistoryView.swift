@@ -50,7 +50,7 @@ public struct SessionHistoryView: View {
             Section {
                 ForEach(sessions) { session in
                     NavigationLink {
-                        SessionDetailView(record: session)
+                        TrainingSessionDetailView(record: session)
                     } label: {
                         SessionRow(record: session, status: sync.status(of: session))
                     }
@@ -94,47 +94,35 @@ private struct SessionRow: View {
     }
 }
 
-private struct SessionDetailView: View {
+/// A past session shown as its end-of-session summary. Pushed from session
+/// history and from the app's Intensity cards.
+public struct TrainingSessionDetailView: View {
     let record: TrainingSessionRecord
-    @Query private var rounds: [SparringRoundRecord]
     @Environment(\.modelContext) private var modelContext
+    @State private var summary: TrainingSummary?
     private let sync = HealthSessionSync.shared
 
-    init(record: TrainingSessionRecord) {
+    public init(record: TrainingSessionRecord) {
         self.record = record
-        let id: UUID? = record.id
-        _rounds = Query(filter: #Predicate<SparringRoundRecord> { $0.sessionID == id }, sort: \.start)
     }
 
-    var body: some View {
-        Form {
-            Section {
-                HealthSyncStatusView(status: sync.status(of: record), kindLabel: record.kindLabel) {
-                    sync.retry(record, context: modelContext)
-                }
-            } header: {
-                Text("Apple Health")
-            }
-
-            Section {
-                LabeledContent("Started", value: record.startedAt.formatted(date: .abbreviated, time: .shortened))
-                LabeledContent("Duration", value: record.duration.map(HeartRateChart.clock) ?? "--")
-                LabeledContent("Active calories", value: record.activeCalories.map { "\(Int($0.rounded())) kcal" } ?? "--")
-                LabeledContent("HR avg", value: record.averageBPM.map { "\($0) bpm" } ?? "--")
-                LabeledContent("HR max", value: record.maxBPM.map { "\($0) bpm" } ?? "--")
-            }
-
-            if !rounds.isEmpty {
-                Section("Sparring") {
-                    LabeledContent("Rounds", value: "\(rounds.count)")
-                    LabeledContent("Timeouts", value: "\(record.timeoutCount)")
-                    LabeledContent("Over ceiling", value: HeartRateChart.clock(record.secondsOverCeiling))
-                }
+    public var body: some View {
+        Group {
+            if let summary {
+                SessionSummaryContent(summary: summary, kindLabel: record.kindLabel,
+                                      status: sync.status(of: record),
+                                      bufferBytes: HRBufferFile(sessionID: record.id).byteCount,
+                                      retry: { sync.retry(record, context: modelContext) })
+            } else {
+                ProgressView("Loading session…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .monospacedDigit()
         .navigationTitle(record.kindLabel)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            summary = await sync.summary(of: record, store: SessionStore(context: modelContext))
+        }
     }
 }
 
@@ -212,9 +200,14 @@ private struct SyncBadge: View {
     }
 }
 
-private extension TrainingSessionRecord {
-    var kindLabel: String {
-        WorkoutKind(rawValue: kindRaw)?.label ?? kindRaw.capitalized
+extension TrainingSessionRecord {
+    /// The kind the session was tagged with at Start Training. Health only
+    /// keeps the activity type, and Jiu-Jitsu is saved there as Wrestling.
+    public var kindLabel: String {
+        if let kind = WorkoutKind(rawValue: kindRaw) { return kind.label }
+        // Tagged by a build with the Jiu-Jitsu kind before this one knew it.
+        if kindRaw == "jiujitsu" { return "Jiu-Jitsu" }
+        return kindRaw.capitalized
     }
 
     /// nil while still recording.

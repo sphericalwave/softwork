@@ -92,6 +92,24 @@ final class HealthWorkoutWriter {
         return try? await descriptor.result(for: store).first?.uuid
     }
 
+    /// Heart rate flow itself saved between `start` and `end`: a past
+    /// session's readings, once its buffer file is gone.
+    func heartRatePoints(from start: Date, to end: Date) async -> [HRPoint] {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate),
+            HKQuery.predicateForObjects(from: HKSource.default()),
+        ])
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: heartRate, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate)]
+        )
+        let samples = (try? await descriptor.result(for: store)) ?? []
+        return samples.map {
+            HRPoint(t: $0.startDate.timeIntervalSince(start),
+                    bpm: Int($0.quantity.doubleValue(for: bpmUnit).rounded()))
+        }
+    }
+
     /// Saves the session as a workout. The session id is the sync identifier,
     /// so a retry after a crash replaces rather than duplicates the workout.
     /// Heart rate or energy the user hasn't allowed is left out, rather than

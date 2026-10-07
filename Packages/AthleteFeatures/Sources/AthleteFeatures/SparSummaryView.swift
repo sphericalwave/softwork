@@ -16,64 +16,11 @@ struct SparSummaryView: View {
     let summary: TrainingSummary
     let model: SoloSparringModel
 
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text("\(summary.kind.label) · \(summary.startedAt.formatted(date: .complete, time: .shortened))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        StatTile(value: HeartRateChart.clock(summary.duration), unit: nil,
-                                 label: "Duration", systemImage: "stopwatch")
-                        StatTile(value: summary.activeCalories.map { "\(Int($0.rounded()))" } ?? "--", unit: "kcal",
-                                 label: "Active calories", systemImage: "flame.fill")
-                        StatTile(value: summary.averageBPM.map(String.init) ?? "--", unit: "bpm",
-                                 label: "HR avg", systemImage: "heart.fill")
-                        StatTile(value: summary.maxBPM.map(String.init) ?? "--", unit: "bpm",
-                                 label: "HR max", systemImage: "heart.fill")
-                        StatTile(value: "\(summary.timeoutCount)", unit: nil,
-                                 label: summary.timeoutCount == 1 ? "Timeout" : "Timeouts",
-                                 systemImage: "hand.raised.fill")
-                        StatTile(value: HeartRateChart.clock(summary.secondsOverCeiling), unit: nil,
-                                 label: "Over ceiling", systemImage: "exclamationmark.triangle.fill")
-                    }
-
-                    if summary.activeCalories == nil {
-                        Text("Add your sex and weight in Settings, and your birth date in Health, to estimate calories.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Heart Rate")
-                            .font(.headline)
-                        if !summary.rounds.isEmpty {
-                            Text(roundsLine)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        if summary.points.isEmpty {
-                            Text("No heart rate was recorded this session.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            HeartRateChart(points: summary.points, hrMax: summary.hrMax,
-                                           rounds: summary.rounds,
-                                           timeDomain: 0...max(summary.duration, 60))
-                                .frame(height: 280)
-                        }
-                    }
-
-                    HealthSyncStatusView(status: model.saveStatus, kindLabel: summary.kind.label,
-                                         retry: { model.retrySave() })
-
-                    StorageEstimate(summary: summary, bufferBytes: model.bufferBytes)
-                }
-                .padding()
-            }
+            SessionSummaryContent(summary: summary, kindLabel: summary.kind.label,
+                                  status: model.saveStatus, bufferBytes: model.bufferBytes,
+                                  retry: { model.retrySave() })
             .safeAreaInset(edge: .bottom) {
                 Button {
                     model.dismissSummary()
@@ -87,6 +34,74 @@ struct SparSummaryView: View {
                 .background(.bar)
             }
             .navigationTitle("Training Complete")
+        }
+    }
+}
+
+/// The end-of-session screen's content, shared with a past session's
+/// detail (history and Intensity cards).
+struct SessionSummaryContent: View {
+    let summary: TrainingSummary
+    let kindLabel: String
+    let status: HealthSyncStatus
+    let bufferBytes: Int
+    let retry: @MainActor () -> Void
+
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("\(kindLabel) · \(summary.startedAt.formatted(date: .complete, time: .shortened))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                LazyVGrid(columns: columns, spacing: 12) {
+                    StatTile(value: HeartRateChart.clock(summary.duration), unit: nil,
+                             label: "Duration", systemImage: "stopwatch")
+                    StatTile(value: summary.activeCalories.map { "\(Int($0.rounded()))" } ?? "--", unit: "kcal",
+                             label: "Active calories", systemImage: "flame.fill")
+                    StatTile(value: summary.averageBPM.map(String.init) ?? "--", unit: "bpm",
+                             label: "HR avg", systemImage: "heart.fill")
+                    StatTile(value: summary.maxBPM.map(String.init) ?? "--", unit: "bpm",
+                             label: "HR max", systemImage: "heart.fill")
+                    StatTile(value: "\(summary.timeoutCount)", unit: nil,
+                             label: summary.timeoutCount == 1 ? "Timeout" : "Timeouts",
+                             systemImage: "hand.raised.fill")
+                    StatTile(value: HeartRateChart.clock(summary.secondsOverCeiling), unit: nil,
+                             label: "Over ceiling", systemImage: "exclamationmark.triangle.fill")
+                }
+
+                if summary.activeCalories == nil {
+                    Text("Add your sex and weight in Settings, and your birth date in Health, to estimate calories.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Heart Rate")
+                        .font(.headline)
+                    if !summary.rounds.isEmpty {
+                        Text(roundsLine)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    if summary.points.isEmpty {
+                        Text("No heart rate was recorded this session.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        HeartRateChart(points: summary.points, hrMax: summary.hrMax,
+                                       rounds: summary.rounds,
+                                       timeDomain: 0...max(summary.duration, 60))
+                            .frame(height: 280)
+                    }
+                }
+
+                HealthSyncStatusView(status: status, kindLabel: kindLabel, retry: retry)
+
+                StorageEstimate(summary: summary, bufferBytes: bufferBytes)
+            }
+            .padding()
         }
     }
 
