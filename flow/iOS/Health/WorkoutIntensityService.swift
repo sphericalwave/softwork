@@ -11,14 +11,16 @@ import HealthKit
 import SessionEngine
 
 /// A workout plus its time-in-zone breakdown and average intensity.
-struct WorkoutIntensity: Identifiable {
+/// Codable so the last result can be cached and shown at launch.
+struct WorkoutIntensity: Identifiable, Codable {
     let id: UUID
     let start: Date
-    let activityType: HKWorkoutActivityType
+    let activityTypeRaw: UInt
     let duration: TimeInterval
     let zoneSeconds: [HRZone: TimeInterval]
     let avgPercentOfMax: Double?
 
+    var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
 }
 
@@ -31,10 +33,10 @@ final class WorkoutIntensityService {
         self.store = store
     }
 
-    /// Workouts started within the last `days`, newest first, each with its
+    /// Workouts started within `window`, newest first, each with its
     /// zone distribution computed against `hrMax`.
-    func recentIntensities(days: Int, hrMax: Int) async throws -> [WorkoutIntensity] {
-        let (start, end) = HealthKitService.windowDates(days: days)
+    func recentIntensities(in window: DashboardViewModel.TimeWindow, hrMax: Int) async throws -> [WorkoutIntensity] {
+        let (start, end) = window.dates
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let workouts = try await workouts(predicate: predicate)
 
@@ -52,7 +54,7 @@ final class WorkoutIntensityService {
             out.append(WorkoutIntensity(
                 id: workout.uuid,
                 start: workout.startDate,
-                activityType: workout.workoutActivityType,
+                activityTypeRaw: workout.workoutActivityType.rawValue,
                 duration: workout.duration,
                 zoneSeconds: zones,
                 avgPercentOfMax: avgPct

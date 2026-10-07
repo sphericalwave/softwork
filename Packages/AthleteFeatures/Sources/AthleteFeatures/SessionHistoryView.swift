@@ -64,6 +64,7 @@ public struct SessionHistoryView: View {
             }
         }
         .navigationTitle("History")
+        .brandedToolbars()
     }
 }
 
@@ -119,7 +120,7 @@ public struct TrainingSessionDetailView: View {
             }
         }
         .navigationTitle(record.kindLabel)
-        .navigationBarTitleDisplayMode(.inline)
+        .brandedToolbars()
         .task {
             summary = await sync.summary(of: record, store: SessionStore(context: modelContext))
         }

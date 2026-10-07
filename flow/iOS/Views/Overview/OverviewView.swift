@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import SwDesignSystem
+import AthleteFeatures
 
 struct OverviewView: View {
     @ObservedObject var viewModel: DashboardViewModel
@@ -18,26 +18,30 @@ struct OverviewView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     tiles
-                    WindowPicker(window: $window, refresh: refresh)
 
                     TrendChart(title: "HRV",
-                               unit: "ms avg / day",
+                               unit: "ms avg / \(bucketName)",
                                series: viewModel.hrvTrend,
+                               bucket: window.bucket,
                                tint: .green,
                                style: .line)
 
                     TrendChart(title: "Active Energy",
-                               unit: "kcal / day",
+                               unit: "kcal / \(bucketName)",
                                series: viewModel.activeEnergyTrend,
+                               bucket: window.bucket,
                                tint: .orange,
                                style: .bar)
                 }
                 .padding()
             }
             .navigationTitle("Overview")
-            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .brandedToolbars()
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    WindowPicker(window: $window)
+                }
+            }
             .refreshable { await refresh() }
             .overlay(alignment: .top) {
                 if let message = viewModel.errorMessage {
@@ -49,6 +53,8 @@ struct OverviewView: View {
             }
         }
     }
+
+    private var bucketName: String { window.bucket == .hour ? "hour" : "day" }
 
     private var tiles: some View {
         HStack(spacing: 12) {
@@ -62,20 +68,18 @@ struct OverviewView: View {
     }
 }
 
-/// Shared 7/30/90-day selector that re-runs the load on change.
+/// Day/Week/Month selector for the nav bar's principal slot. RootView
+/// reloads when it changes.
 struct WindowPicker: View {
     @Binding var window: DashboardViewModel.TimeWindow
-    let refresh: () async -> Void
 
     var body: some View {
-        Picker("Window", selection: $window) {
+        Picker("Timeframe", selection: $window) {
             ForEach(DashboardViewModel.TimeWindow.allCases) { w in
                 Text(w.label).tag(w)
             }
         }
         .pickerStyle(.segmented)
-        .onChange(of: window) { _, _ in
-            Task { await refresh() }
-        }
+        .frame(width: 180)
     }
 }

@@ -12,6 +12,8 @@ struct TrendChart: View {
     let title: String
     let unit: String
     let series: [Date: Double]
+    /// `.hour` for the Day window, `.day` otherwise.
+    let bucket: Calendar.Component
     let tint: Color
     /// `.line` for continuous signals (HRV), `.bar` for daily totals (energy).
     let style: Style
@@ -40,12 +42,12 @@ struct TrendChart: View {
                 Chart(points) { point in
                     switch style {
                     case .line:
-                        LineMark(x: .value("Day", point.date, unit: .day),
+                        LineMark(x: .value("Time", point.date, unit: bucket),
                                  y: .value(title, point.value))
                             .foregroundStyle(tint)
                             .interpolationMethod(.catmullRom)
                     case .bar:
-                        BarMark(x: .value("Day", point.date, unit: .day),
+                        BarMark(x: .value("Time", point.date, unit: bucket),
                                 y: .value(title, point.value))
                             .foregroundStyle(tint)
                     }

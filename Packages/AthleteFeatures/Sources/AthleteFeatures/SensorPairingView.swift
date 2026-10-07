@@ -74,7 +74,7 @@ struct SensorPairingView: View {
                 }
             }
             .navigationTitle("Heart Rate Strap")
-            .navigationBarTitleDisplayMode(.inline)
+            .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

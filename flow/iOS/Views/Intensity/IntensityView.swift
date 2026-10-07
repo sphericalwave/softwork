@@ -8,7 +8,6 @@
 
 import SwiftUI
 import SwiftData
-import SwDesignSystem
 import Persistence
 import AthleteFeatures
 import HealthKit
@@ -22,6 +21,7 @@ struct IntensityView: View {
 
     @Query(filter: #Predicate<TrainingSessionRecord> { $0.healthKitWorkoutID != nil })
     private var savedSessions: [TrainingSessionRecord]
+    @State private var tags = WorkoutTags()
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
     private var sessionsByWorkoutID: [UUID: TrainingSessionRecord] {
@@ -44,13 +44,16 @@ struct IntensityView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    WindowPicker(window: $window, refresh: refresh)
-
                     if viewModel.intensities.isEmpty {
-                        ContentUnavailableView("No workouts",
-                                               systemImage: "figure.run",
-                                               description: Text("Workouts with heart-rate data in this window will appear here."))
-                            .padding(.top, 40)
+                        if viewModel.isLoading {
+                            ProgressView("Loading workouts from Health…")
+                                .padding(.top, 80)
+                        } else {
+                            ContentUnavailableView("No workouts",
+                                                   systemImage: "figure.run",
+                                                   description: Text("Workouts with heart-rate data in this window will appear here."))
+                                .padding(.top, 40)
+                        }
                     } else {
                         aggregateCard
                         ForEach(viewModel.intensities) { workout in
@@ -59,11 +62,11 @@ struct IntensityView: View {
                                     TrainingSessionDetailView(record: session)
                                 } label: {
                                     WorkoutIntensityRow(intensity: workout, title: session.kindLabel,
-                                                        showsDisclosure: true)
+                                                        accessory: "chevron.right")
                                 }
                                 .buttonStyle(.plain)
                             } else {
-                                WorkoutIntensityRow(intensity: workout, title: workout.activityType.name)
+                                taggableRow(workout)
                             }
                         }
                     }
@@ -71,11 +74,34 @@ struct IntensityView: View {
                 .padding()
             }
             .navigationTitle("Intensity")
-            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .brandedToolbars()
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    WindowPicker(window: $window)
+                }
+            }
             .refreshable { await refresh() }
         }
+    }
+
+    /// A workout flow didn't record: tap to tag what it really was.
+    private func taggableRow(_ workout: WorkoutIntensity) -> some View {
+        let tag = tags.tag(for: workout.id)
+        return Menu {
+            Picker("Tag as", selection: Binding(
+                get: { tag },
+                set: { tags.setTag($0, for: workout.id) }
+            )) {
+                ForEach(WorkoutTag.allCases) { Text($0.label).tag(Optional($0)) }
+            }
+            if tag != nil {
+                Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
+            }
+        } label: {
+            WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
+                                accessory: tag == nil ? "tag" : "tag.fill")
+        }
+        .buttonStyle(.plain)
     }
 
     private var aggregateCard: some View {
@@ -93,7 +119,8 @@ struct IntensityView: View {
 struct WorkoutIntensityRow: View {
     let intensity: WorkoutIntensity
     let title: String
-    var showsDisclosure = false
+    /// SF Symbol hinting what a tap does: open (chevron) or tag.
+    var accessory: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -104,8 +131,8 @@ struct WorkoutIntensityRow: View {
                 Text(intensity.start, format: .dateTime.month().day())
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if showsDisclosure {
-                    Image(systemName: "chevron.right")
+                if let accessory {
+                    Image(systemName: accessory)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }

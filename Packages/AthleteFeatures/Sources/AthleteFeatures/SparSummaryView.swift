@@ -34,6 +34,7 @@ struct SparSummaryView: View {
                 .background(.bar)
             }
             .navigationTitle("Training Complete")
+            .brandedToolbars()
         }
     }
 }

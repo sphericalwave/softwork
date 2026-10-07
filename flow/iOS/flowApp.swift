@@ -15,13 +15,8 @@ struct flowApp: App {
 
     var sharedModelContainer: ModelContainer = AppModelContainer.make()
 
-    init() {
-        SwTheme.configure()
-        // SwTheme paints segmented controls white with brand-blue labels, a white
-        // slab in dark mode. Keep the brand-blue selected segment; let the rest adapt.
-        UISegmentedControl.appearance().backgroundColor = nil
-        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.label], for: .normal)
-    }
+    // No SwTheme.configure(): its UINavigationBar/UISegmentedControl appearance
+    // fights brandedToolbars() and the system segmented control in the nav bar.
 
     var body: some Scene {
         WindowGroup {

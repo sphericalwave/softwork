@@ -20,7 +20,7 @@ struct RootView: View {
     @AppStorage("flowSelectedTab") private var selectedTab = 0
     @AppStorage("hrMaxOverride") private var hrMaxOverride = 0
     @AppStorage("maxHRFormula") private var maxHRFormula: MaxHRFormula = .tanaka
-    @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.month.rawValue
+    @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.week.rawValue
 
     @StateObject private var viewModel: DashboardViewModel
 
@@ -41,9 +41,13 @@ struct RootView: View {
         MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: maxHRFormula)
     }
 
+    private var window: DashboardViewModel.TimeWindow {
+        DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .week
+    }
+
     private var windowBinding: Binding<DashboardViewModel.TimeWindow> {
         Binding(
-            get: { DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .month },
+            get: { window },
             set: { windowRaw = $0.rawValue }
         )
     }
@@ -68,12 +72,17 @@ struct RootView: View {
         }
         .task {
             viewModel.primeFromCache(snapshots.first)
+            viewModel.primeIntensities(for: window)
             do {
                 try await health.requestAuthorization()
             } catch {
                 ErrorLog.shared.error("Health", "Health authorization request failed", error: error)
             }
             await refresh()
+        }
+        .onChange(of: windowRaw) { _, _ in
+            viewModel.primeIntensities(for: window)
+            Task { await refresh() }
         }
         // Training sessions not yet in Health are retried at launch and on
         // every return to the foreground, whichever tab is showing.
@@ -84,7 +93,6 @@ struct RootView: View {
     }
 
     private func refresh() async {
-        let window = DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .month
         await viewModel.refresh(window: window, hrMaxOverride: hrMaxOverride, formula: maxHRFormula, context: modelContext)
     }
 }

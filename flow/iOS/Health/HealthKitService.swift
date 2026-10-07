@@ -50,26 +50,31 @@ final class HealthKitService: ObservableObject {
 
     // MARK: - Daily aggregations
 
-    func dailyAverageHRV(days: Int) async throws -> [Date: Double] {
+    /// Average HRV per bucket (hour for a day window, day otherwise).
+    func averageHRV(in window: DashboardViewModel.TimeWindow) async throws -> [Date: Double] {
         let unit = HKUnit.secondUnit(with: .milli)
-        return try await statisticsCollection(.heartRateVariabilitySDNN, days: days,
-                                               options: .discreteAverage, unit: unit) {
+        let (start, end) = window.dates
+        return try await statisticsCollection(.heartRateVariabilitySDNN, from: start, to: end,
+                                               bucket: window.bucket, options: .discreteAverage) {
             $0.averageQuantity()?.doubleValue(for: unit)
         }
     }
 
-    func dailySumActiveEnergy(days: Int) async throws -> [Date: Double] {
+    /// Active energy per bucket (hour for a day window, day otherwise).
+    func sumActiveEnergy(in window: DashboardViewModel.TimeWindow) async throws -> [Date: Double] {
         let unit = HKUnit.largeCalorie()
-        return try await statisticsCollection(.activeEnergyBurned, days: days,
-                                               options: .cumulativeSum, unit: unit) {
+        let (start, end) = window.dates
+        return try await statisticsCollection(.activeEnergyBurned, from: start, to: end,
+                                               bucket: window.bucket, options: .cumulativeSum) {
             $0.sumQuantity()?.doubleValue(for: unit)
         }
     }
 
     func dailyAverageRestingHR(days: Int) async throws -> [Date: Double] {
         let unit = HKUnit.count().unitDivided(by: .minute())
-        return try await statisticsCollection(.restingHeartRate, days: days,
-                                               options: .discreteAverage, unit: unit) {
+        let (start, end) = Self.windowDates(days: days)
+        return try await statisticsCollection(.restingHeartRate, from: start, to: end,
+                                               bucket: .day, options: .discreteAverage) {
             $0.averageQuantity()?.doubleValue(for: unit)
         }
     }
@@ -86,8 +91,13 @@ final class HealthKitService: ObservableObject {
 
     /// Total active energy (kcal) burned since local midnight today.
     func todayActiveEnergy() async throws -> Double? {
-        let today = try await dailySumActiveEnergy(days: 1)
-        return today[Calendar.current.startOfDay(for: Date())]
+        let (start, end) = DashboardViewModel.TimeWindow.day.dates
+        let unit = HKUnit.largeCalorie()
+        let today = try await statisticsCollection(.activeEnergyBurned, from: start, to: end,
+                                                   bucket: .day, options: .cumulativeSum) {
+            $0.sumQuantity()?.doubleValue(for: unit)
+        }
+        return today[start]
     }
 
     // MARK: - Age
@@ -110,31 +120,32 @@ final class HealthKitService: ObservableObject {
 
     private func statisticsCollection(
         _ identifier: HKQuantityTypeIdentifier,
-        days: Int,
+        from start: Date,
+        to end: Date,
+        bucket: Calendar.Component,
         options: HKStatisticsOptions,
-        unit: HKUnit,
         extract: @escaping (HKStatistics) -> Double?
     ) async throws -> [Date: Double] {
         guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
             throw HealthError.invalidType
         }
-        let (start, end) = Self.windowDates(days: days)
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let anchor = Calendar.current.startOfDay(for: start)
+        var interval = DateComponents()
+        interval.setValue(1, for: bucket)
 
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[Date: Double], Error>) in
             let query = HKStatisticsCollectionQuery(quantityType: type,
                                                     quantitySamplePredicate: predicate,
                                                     options: options,
                                                     anchorDate: anchor,
-                                                    intervalComponents: DateComponents(day: 1))
+                                                    intervalComponents: interval)
             query.initialResultsHandler = { _, results, error in
                 if let error { cont.resume(throwing: error); return }
                 guard let results else { cont.resume(returning: [:]); return }
                 var out: [Date: Double] = [:]
                 results.enumerateStatistics(from: start, to: end) { stats, _ in
-                    let day = Calendar.current.startOfDay(for: stats.startDate)
-                    if let v = extract(stats) { out[day] = v }
+                    if let v = extract(stats) { out[stats.startDate] = v }
                 }
                 cont.resume(returning: out)
             }

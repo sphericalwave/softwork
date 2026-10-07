@@ -132,6 +132,7 @@ struct SparLobbyView: View {
                 }
             }
             .navigationTitle("Spar")
+            .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {

@@ -109,15 +109,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    NavigationLink { DiagnosticsView() } label: {
+                    NavigationLink { DiagnosticsView().brandedToolbars() } label: {
                         Label("Error Log", systemImage: "ladybug")
                     }
                 }
             }
             .navigationTitle("Settings")
-            .toolbarBackground(SwTheme.primaryColor, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .brandedToolbars()
         }
     }
 
