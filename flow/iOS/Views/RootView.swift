@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import SessionEngine
 import AthleteFeatures
+import DiagnosticsKit
 
 struct RootView: View {
     @EnvironmentObject private var health: HealthKitService
@@ -67,7 +68,11 @@ struct RootView: View {
         }
         .task {
             viewModel.primeFromCache(snapshots.first)
-            try? await health.requestAuthorization()
+            do {
+                try await health.requestAuthorization()
+            } catch {
+                ErrorLog.shared.error("Health", "Health authorization request failed", error: error)
+            }
             await refresh()
         }
         // Training sessions not yet in Health are retried at launch and on

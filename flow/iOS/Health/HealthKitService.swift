@@ -10,6 +10,7 @@
 import Foundation
 import HealthKit
 import Combine
+import AthleteFeatures
 
 enum HealthError: Error {
     case notAvailable
@@ -40,7 +41,10 @@ final class HealthKitService: ObservableObject {
 
     func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else { throw HealthError.notAvailable }
-        try await store.requestAuthorization(toShare: [], read: readTypes)
+        // Training-session types too, so the user answers one sheet covering
+        // everything instead of a second one at Start Training.
+        try await store.requestAuthorization(toShare: TrainingHealthTypes.share,
+                                             read: readTypes.union(TrainingHealthTypes.read))
         isAuthorized = true
     }
 

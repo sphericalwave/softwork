@@ -20,6 +20,24 @@ public enum CalorieSettingsKeys {
     public static let sex = "calorieSex"
 }
 
+/// Everything training sessions write to and read from Health. The app asks
+/// for these together with its dashboard types in one request, so the user
+/// sees a single Health sheet instead of a second one at Start Training.
+public enum TrainingHealthTypes {
+    public static var share: Set<HKSampleType> {
+        [HKObjectType.workoutType(), HKQuantityType(.heartRate), HKQuantityType(.activeEnergyBurned)]
+    }
+
+    public static var read: Set<HKObjectType> {
+        [
+            HKObjectType.workoutType(),
+            HKQuantityType(.bodyMass),
+            HKCharacteristicType(.biologicalSex),
+            HKCharacteristicType(.dateOfBirth),
+        ]
+    }
+}
+
 @MainActor
 final class HealthWorkoutWriter {
     private let store = HKHealthStore()
@@ -41,16 +59,14 @@ final class HealthWorkoutWriter {
         }
     }
 
+    /// A no-op once the app's launch request (which includes these types) is answered.
     func requestAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
-        let share: Set<HKSampleType> = [HKObjectType.workoutType(), heartRate, activeEnergy]
-        let read: Set<HKObjectType> = [
-            HKObjectType.workoutType(),
-            HKQuantityType(.bodyMass),
-            HKCharacteristicType(.biologicalSex),
-            HKCharacteristicType(.dateOfBirth),
-        ]
-        try? await store.requestAuthorization(toShare: share, read: read)
+        do {
+            try await store.requestAuthorization(toShare: TrainingHealthTypes.share, read: TrainingHealthTypes.read)
+        } catch {
+            print("HealthWorkoutWriter: authorization request failed: \(error)")
+        }
     }
 
     /// Settings values first, then Health; nil if sex, weight or age is unknown.
