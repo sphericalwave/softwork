@@ -67,7 +67,8 @@ struct SparSummaryView: View {
                         }
                     }
 
-                    HealthSaveStatus(state: model.saveState, kind: summary.kind, retry: { model.retrySave() })
+                    HealthSyncStatusView(status: model.saveStatus, kindLabel: summary.kind.label,
+                                         retry: { model.retrySave() })
 
                     StorageEstimate(summary: summary, bufferBytes: model.bufferBytes)
                 }
@@ -92,37 +93,6 @@ struct SparSummaryView: View {
     private var roundsLine: String {
         let count = summary.rounds.count
         return "\(count) sparring \(count == 1 ? "round" : "rounds") · \(HeartRateChart.clock(summary.sparringSeconds)) (shaded)"
-    }
-}
-
-private struct HealthSaveStatus: View {
-    let state: SoloSparringModel.SaveState
-    let kind: WorkoutKind
-    let retry: @MainActor () -> Void
-
-    var body: some View {
-        switch state {
-        case .idle, .saving:
-            HStack(spacing: 8) {
-                ProgressView()
-                Text("Saving to Health…")
-            }
-            .foregroundStyle(.secondary)
-        case .saved:
-            Label("Saved to Health as \(kind.label)", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-        case .failed(let message):
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Not saved to Health", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    .font(.headline)
-                Text("\(message) Your session is kept on this phone and will be saved next time flow opens. Check that flow can write workouts in Settings › Health › Data Access.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Button("Try Again", action: retry)
-                    .buttonStyle(.bordered)
-            }
-        }
     }
 }
 

@@ -75,16 +75,21 @@ final class SessionStore {
         save()
     }
 
-    func markSaved(_ record: TrainingSessionRecord, workoutID: UUID) {
+    /// False if the store couldn't be written; the caller must then keep the
+    /// session's buffer file.
+    func markSaved(_ record: TrainingSessionRecord, workoutID: UUID) -> Bool {
         record.healthKitWorkoutID = workoutID
-        save()
+        return save()
     }
 
-    private func save() {
+    @discardableResult
+    private func save() -> Bool {
         do {
             try context.save()
+            return true
         } catch {
             print("SessionStore: save failed: \(error)")
+            return false
         }
     }
 }

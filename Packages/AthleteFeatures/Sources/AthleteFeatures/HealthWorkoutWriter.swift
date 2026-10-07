@@ -30,11 +30,13 @@ final class HealthWorkoutWriter {
     enum WriteError: LocalizedError {
         case unavailable
         case noWorkout
+        case workoutsNotAllowed
 
         var errorDescription: String? {
             switch self {
             case .unavailable: return "Health isn't available on this device."
             case .noWorkout: return "Health didn't return the saved workout."
+            case .workoutsNotAllowed: return "flow isn't allowed to save workouts to Health."
             }
         }
     }
@@ -43,6 +45,7 @@ final class HealthWorkoutWriter {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let share: Set<HKSampleType> = [HKObjectType.workoutType(), heartRate, activeEnergy]
         let read: Set<HKObjectType> = [
+            HKObjectType.workoutType(),
             HKQuantityType(.bodyMass),
             HKCharacteristicType(.biologicalSex),
             HKCharacteristicType(.dateOfBirth),
@@ -61,10 +64,27 @@ final class HealthWorkoutWriter {
         return CalorieProfile(sex: sex, weightKg: weight, age: age)
     }
 
+    /// The workout flow already saved for this session, found by its sync
+    /// identifier — covers an app kill between the save and recording it.
+    func savedWorkoutID(sessionID: UUID) async -> UUID? {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeySyncIdentifier,
+                                        allowedValues: [sessionID.uuidString]),
+            HKQuery.predicateForObjects(from: HKSource.default()),
+        ])
+        let descriptor = HKSampleQueryDescriptor(predicates: [.workout(predicate)], sortDescriptors: [], limit: 1)
+        return try? await descriptor.result(for: store).first?.uuid
+    }
+
     /// Saves the session as a workout. The session id is the sync identifier,
     /// so a retry after a crash replaces rather than duplicates the workout.
+    /// Heart rate or energy the user hasn't allowed is left out, rather than
+    /// failing the whole workout on every retry.
     func save(_ summary: TrainingSummary, sessionID: UUID) async throws -> UUID {
         guard HKHealthStore.isHealthDataAvailable() else { throw WriteError.unavailable }
+        guard store.authorizationStatus(for: .workoutType()) != .sharingDenied else {
+            throw WriteError.workoutsNotAllowed
+        }
         let config = HKWorkoutConfiguration()
         config.activityType = summary.kind.activityType
         config.locationType = .indoor
@@ -85,6 +105,7 @@ final class HealthWorkoutWriter {
                              quantity: HKQuantity(unit: .kilocalorie(), doubleValue: interval.kcal),
                              start: date(interval.start), end: date(interval.end))
         }
+        samples.removeAll { store.authorizationStatus(for: $0.sampleType) != .sharingAuthorized }
         if !samples.isEmpty {
             _ = try await builder.addSamples(samples)
         }

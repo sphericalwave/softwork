@@ -13,6 +13,7 @@ import AthleteFeatures
 struct RootView: View {
     @EnvironmentObject private var health: HealthKitService
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var snapshots: [MetricSnapshot]
 
     @AppStorage("flowSelectedTab") private var selectedTab = 0
@@ -68,6 +69,12 @@ struct RootView: View {
             viewModel.primeFromCache(snapshots.first)
             try? await health.requestAuthorization()
             await refresh()
+        }
+        // Training sessions not yet in Health are retried at launch and on
+        // every return to the foreground, whichever tab is showing.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active else { return }
+            Task { await HealthSessionSync.shared.syncPending(context: modelContext) }
         }
     }
 

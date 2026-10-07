@@ -8,11 +8,16 @@
 
 #if os(iOS)
 import SwiftUI
+import SwiftData
 import SessionEngine
 import HeartRateKit
+import Persistence
 
 struct SparLobbyView: View {
     let model: SoloSparringModel
+
+    @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil && $0.healthKitWorkoutID == nil })
+    private var unsaved: [TrainingSessionRecord]
 
     @AppStorage("sparCeilingPct") private var ceilingPct = SparringPrescription().ceilingPct
     @AppStorage("sparNoFlashing") private var noFlashing = false
@@ -30,6 +35,19 @@ struct SparLobbyView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if !unsaved.isEmpty {
+                    Section {
+                        NavigationLink {
+                            SessionHistoryView()
+                        } label: {
+                            Label(unsaved.count == 1 ? "1 session not in Health yet"
+                                                     : "\(unsaved.count) sessions not in Health yet",
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+
                 Section("Heart Rate Strap") {
                     Button {
                         if model.ble != nil { showingPairing = true }
@@ -114,6 +132,15 @@ struct SparLobbyView: View {
                 }
             }
             .navigationTitle("Spar")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SessionHistoryView()
+                    } label: {
+                        Label("History", systemImage: "clock.arrow.circlepath")
+                    }
+                }
+            }
             .sheet(isPresented: $showingPairing) {
                 if let ble = model.ble {
                     SensorPairingView(ble: ble, liveBPM: model.bpm)

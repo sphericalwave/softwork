@@ -9,8 +9,8 @@
 //
 //  Durability: session metadata and each finished round are saved to
 //  SwiftData immediately, and every reading is appended to an HRBufferFile,
-//  so an app kill loses nothing. At End the workout goes to HealthKit; the
-//  buffer is deleted only once that succeeds.
+//  so an app kill loses nothing. At End the workout goes to HealthKit via
+//  HealthSessionSync; the buffer is deleted only once that succeeds.
 //
 
 #if os(iOS)
@@ -34,17 +34,6 @@ public final class SoloSparringModel {
         case timeout
         case resuming(Int)
     }
-
-    public enum SaveState: Equatable {
-        case idle
-        case saving
-        case saved
-        case failed(String)
-    }
-
-    /// An open session older than this at launch is ended at its last
-    /// reading instead of resumed.
-    private static let staleAfter: TimeInterval = 30 * 60
 
     /// Takes effect at the next Start Training; a running session keeps its own.
     public var hrMax: Int
@@ -72,12 +61,16 @@ public final class SoloSparringModel {
 
     /// The session that just ended, shown until dismissed.
     public private(set) var summary: TrainingSummary?
-    public private(set) var saveState: SaveState = .idle
+    /// Health save status of the session on screen.
+    public var saveStatus: HealthSyncStatus {
+        record.map { sync.status(of: $0) } ?? .pending
+    }
 
     private let source: HeartRateSource
     private let alerts: AlertOutput
     private let store: SessionStore
     private let health = HealthWorkoutWriter()
+    private let sync = HealthSessionSync.shared
     private var controller: TimeoutController?
     private var evaluator = HRSignalEvaluator()
     private var sessionStart = Date()
@@ -135,6 +128,7 @@ public final class SoloSparringModel {
         elapsed = 0
         record = store.begin(id: id, startedAt: now, kind: kind, hrMax: hrMax)
         buffer = HRBufferFile(sessionID: id)
+        sync.activeSessionID = id
         stage = .training
         Task {
             await health.requestAuthorization()
@@ -146,13 +140,14 @@ public final class SoloSparringModel {
         guard let record, stage != .lobby else { return }
         stopSparring()
         let now = Date()
+        sync.activeSessionID = nil
         finish(record, at: now, points: points, rounds: rounds, profile: calorieProfile)
         stage = .lobby
     }
 
     public func retrySave() {
         guard let record, let summary else { return }
-        Task { await save(summary, record: record, buffer: buffer) }
+        sync.save(summary, record: record, buffer: buffer ?? HRBufferFile(sessionID: record.id), store: store)
     }
 
     /// Size of the crash-safety buffer for the session on screen; 0 once
@@ -161,7 +156,6 @@ public final class SoloSparringModel {
 
     public func dismissSummary() {
         summary = nil
-        saveState = .idle
         record = nil
         buffer = nil
     }
@@ -213,81 +207,33 @@ public final class SoloSparringModel {
 
     private func finish(_ record: TrainingSessionRecord, at end: Date, points: [HRPoint],
                         rounds: [SparringRound], profile: CalorieProfile?) {
-        let summary = Self.summary(of: record, endingAt: end, points: points, rounds: rounds, profile: profile)
+        let summary = TrainingSummary(record: record, endingAt: end, points: points, rounds: rounds, profile: profile)
         store.end(record, at: end, summary: summary)
         self.summary = summary
-        let buffer = buffer
-        Task { await save(summary, record: record, buffer: buffer) }
-    }
-
-    private static func summary(of record: TrainingSessionRecord, endingAt end: Date, points: [HRPoint],
-                                rounds: [SparringRound], profile: CalorieProfile?) -> TrainingSummary {
-        TrainingSummary(startedAt: record.startedAt,
-                        duration: max(end.timeIntervalSince(record.startedAt), 0),
-                        kind: WorkoutKind(rawValue: record.kindRaw) ?? .wrestling,
-                        hrMax: record.hrMax, points: points, rounds: rounds, profile: profile)
-    }
-
-    private func save(_ summary: TrainingSummary, record: TrainingSessionRecord, buffer: HRBufferFile?) async {
-        let isCurrent = record === self.record
-        if isCurrent { saveState = .saving }
-        do {
-            let workoutID = try await health.save(summary, sessionID: record.id)
-            store.markSaved(record, workoutID: workoutID)
-            buffer?.delete()
-            if isCurrent { saveState = .saved }
-        } catch {
-            if isCurrent { saveState = .failed(error.localizedDescription) }
-        }
+        sync.save(summary, record: record, buffer: buffer ?? HRBufferFile(sessionID: record.id), store: store)
     }
 
     /// Runs once per launch. First, synchronously, resume a session the app
-    /// was killed during — or, if it's stale, end it at its last reading.
-    /// Then retry every ended session whose HealthKit save didn't finish.
+    /// was killed during, unless it's stale — the sync ends that one at its
+    /// last reading. Then retry every ended session not yet in HealthKit.
     private func recover() async {
-        if let open = store.openSession(), stage == .lobby {
+        if let open = store.openSession(), stage == .lobby, !HealthSessionSync.isStale(open, store: store) {
             let file = HRBufferFile(sessionID: open.id)
-            let readings = file.read()
-            let restored = Self.points(readings, since: open.startedAt)
-            let savedRounds = store.rounds(for: open.id)
-            let lastActivity = [readings.last?.date,
-                                savedRounds.last.map { open.startedAt.addingTimeInterval($0.end) },
-                                open.startedAt].compactMap { $0 }.max() ?? open.startedAt
-
-            if Date().timeIntervalSince(lastActivity) > Self.staleAfter {
-                // Saved to HealthKit by the retry loop below.
-                store.end(open, at: lastActivity, summary: Self.summary(of: open, endingAt: lastActivity,
-                                                                        points: restored, rounds: savedRounds,
-                                                                        profile: nil))
-            } else {
-                record = open
-                buffer = file
-                kind = WorkoutKind(rawValue: open.kindRaw) ?? .wrestling
-                sessionHRMax = open.hrMax
-                sessionStart = open.startedAt
-                points = restored
-                rounds = savedRounds
-                elapsed = Date().timeIntervalSince(open.startedAt)
-                stage = .training
-            }
+            record = open
+            buffer = file
+            sync.activeSessionID = open.id
+            kind = WorkoutKind(rawValue: open.kindRaw) ?? .wrestling
+            sessionHRMax = open.hrMax
+            sessionStart = open.startedAt
+            points = HealthSessionSync.points(file.read(), since: open.startedAt)
+            rounds = store.rounds(for: open.id)
+            elapsed = Date().timeIntervalSince(open.startedAt)
+            stage = .training
         }
 
         await health.requestAuthorization()
         calorieProfile = await health.calorieProfile()
-
-        for unsaved in store.unsavedSessions() where unsaved !== record {
-            let file = HRBufferFile(sessionID: unsaved.id)
-            let end = unsaved.endedAt ?? unsaved.startedAt
-            let summary = Self.summary(of: unsaved, endingAt: end,
-                                       points: Self.points(file.read(), since: unsaved.startedAt),
-                                       rounds: store.rounds(for: unsaved.id), profile: calorieProfile)
-            store.end(unsaved, at: end, summary: summary)
-            await save(summary, record: unsaved, buffer: file)
-        }
-    }
-
-    private static func points(_ readings: [(date: Date, bpm: Int)], since start: Date) -> [HRPoint] {
-        readings.map { HRPoint(t: $0.date.timeIntervalSince(start), bpm: $0.bpm) }
+        await sync.syncPending(store: store)
     }
 
     // MARK: - Loops
