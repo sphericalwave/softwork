@@ -1,5 +1,5 @@
 {
-  "originHash" : "c91fe30baec6defb82312b367f746e66b7810ef0672219ac335c2886677bd962",
+  "originHash" : "40148ba341223bf24dace900300216f4e8fc08ec1c9fae34e18576ff46842b02",
   "pins" : [
     {
       "identity" : "audioclipkit",
@@ -8,6 +8,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "de071d0e192f0b4581db6102c85505f15aef5523"
+      }
+    },
+    {
+      "identity" : "diagnosticskit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/DiagnosticsKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "ee2af76b9a16c5008f2714b110781edb85260a8b"
       }
     },
     {
