@@ -23,6 +23,8 @@
 //                           [--preview VIDEOTIME [--length DURATION]] [--out FILE]
 //  --preview renders 20 s (or --length) from VIDEOTIME to check sync and look.
 //  --chart-interval SEC redraws the session HR chart every SEC (default 30).
+//  Totals under the chart: HR avg/max over the video (or --avg-bpm/--max-bpm),
+//  plus --active-cal KCAL when given (e.g. from flow's workout summary).
 //
 //  Needs ffmpeg/ffprobe (brew install ffmpeg).
 //
@@ -104,6 +106,9 @@ var previewLength = 20.0
 /// Measured max (191 bpm on 2026-10-08), used over the CSV's age-based estimate.
 var hrMaxOverride: Int? = 191
 var chartInterval = 30.0
+var activeKcal: Int?
+var avgBpmOverride: Int?
+var maxBpmOverride: Int?
 var outPath: String?
 
 var argv = CommandLine.arguments.dropFirst().makeIterator()
@@ -125,6 +130,15 @@ while let arg = argv.next() {
     case "--chart-interval":
         guard let value = argv.next().flatMap(Double.init), value > 0 else { fail("--chart-interval needs seconds, e.g. 30") }
         chartInterval = value
+    case "--active-cal":
+        guard let value = argv.next().flatMap(Int.init), value >= 0 else { fail("--active-cal needs kcal, e.g. 612") }
+        activeKcal = value
+    case "--avg-bpm":
+        guard let value = argv.next().flatMap(Int.init), value > 0 else { fail("--avg-bpm needs bpm") }
+        avgBpmOverride = value
+    case "--max-bpm":
+        guard let value = argv.next().flatMap(Int.init), value > 0 else { fail("--max-bpm needs bpm") }
+        maxBpmOverride = value
     case "--out": outPath = argv.next()
     case "-h", "--help":
         print("usage: swift hr-overlay.swift <video> <hr.csv> [--sync VIDEO=CLOCK] [--offset SEC] [--preview VIDEOTIME] [--out FILE]")
@@ -251,6 +265,30 @@ let heartPath = "m 50 30 b 50 10 20 0 10 20 b 0 40 30 60 50 90 b 70 60 100 40 90
 let maxGap = 30.0   // like ZoneBucketer: hide the overlay across sensor dropouts
 let shift = previewAt ?? 0
 
+// Frosted "ultra-thin material" card behind the stats: the video under it,
+// blurred, lightly darkened and clipped to a rounded rect; dimensions even
+// for 4:2:0. Inside: the live stack, the session HR chart (zone bands Z1–Z5
+// with the HR line, x spanning the whole video and filling in as it plays,
+// redrawn every chartInterval seconds), then whole-recording totals.
+func even(_ value: Double) -> Int { Int(value / 2) * 2 }
+let pad = fontSize * 0.4
+let cardX = even(margin - pad), cardY = even(margin - pad)
+let cardW = even(fontSize * 6.4)
+let chartX = even(margin), chartY = even(margin + fontSize * 2.25)
+let chartW = even(Double(cardW) - 2 * pad), chartH = even(fontSize * 1.7)
+let totalsY = Double(chartY + chartH) + fontSize * 0.25
+let cardH = even(totalsY + fontSize * 0.45 + pad * 0.8 - Double(cardY))
+let radius = Int(fontSize * 0.4)
+
+// Whole-recording totals: HR avg/max over the video unless given, plus
+// active calories when given (flow doesn't export them yet).
+let recording = samples.filter {
+    let t = $0.time.timeIntervalSince1970 - videoZero
+    return t >= 0 && t <= duration
+}
+let avgBpm = avgBpmOverride ?? (recording.isEmpty ? 0 : recording.map(\.bpm).reduce(0, +) / recording.count)
+let maxBpm = maxBpmOverride ?? (recording.map(\.bpm).max() ?? 0)
+
 var ass = """
     [Script Info]
     ScriptType: v4.00+
@@ -282,6 +320,13 @@ for (i, sample) in samples.enumerated() {
         + "\\N{\\fs\(Int(fontSize * 0.45))\\c\(color)}\(label)"
     ass += "Dialogue: 0,\(assTime(start)),\(assTime(end)),HR,,0,0,0,,\(text)\n"
 }
+do {
+    let label = "{\\c&HA8A8A8&\\fs\(Int(fontSize * 0.32))}", value = "{\\c&HFFFFFF&\\fs\(Int(fontSize * 0.42))}"
+    var totals = "\(label)AVG \(value)\(avgBpm)\(label) bpm   MAX \(value)\(maxBpm)\(label) bpm"
+    if let activeKcal { totals += "   \(value)\(activeKcal)\(label) active cal" }
+    ass += "Dialogue: 0,\(assTime(0)),\(assTime(duration - shift)),HR,,0,0,0,,"
+        + "{\\an7\\pos(\(chartX),\(Int(totalsY)))}\(totals)\n"
+}
 
 // MARK: - Render
 
@@ -293,20 +338,6 @@ do { try ass.write(to: assFile, atomically: true, encoding: .utf8) } catch { fai
 
 let videoURL = URL(fileURLWithPath: videoPath)
 let output = outPath ?? videoURL.deletingPathExtension().path + (previewAt == nil ? "-hr.mp4" : "-hr-preview.mp4")
-// Frosted "ultra-thin material" card behind the stats: the video under it,
-// blurred, lightly darkened and clipped to a rounded rect. Sized for the
-// widest content ("100% max", "Z4 Threshold"); dimensions even for 4:2:0.
-func even(_ value: Double) -> Int { Int(value / 2) * 2 }
-let pad = fontSize * 0.4
-let cardX = even(margin - pad), cardY = even(margin - pad)
-// Session HR chart under the zone line: zone bands (Z1–Z5) with the HR line,
-// x spanning the whole video and filling in as it plays. Redrawn every
-// chartInterval seconds as a PNG sequence.
-let cardW = even(fontSize * 4.7)
-let chartX = even(margin), chartY = even(margin + fontSize * 2.25)
-let chartW = even(Double(cardW) - 2 * pad), chartH = even(fontSize * 1.2)
-let cardH = even(Double(chartY + chartH) + pad - Double(cardY))
-let radius = Int(fontSize * 0.4)
 let chartDir = workDir.appendingPathComponent("chart")
 try? FileManager.default.createDirectory(at: chartDir, withIntermediateDirectories: true)
 let videoSamples = samples.map { (t: $0.time.timeIntervalSince1970 - videoZero, pct: Double($0.bpm) / Double(hrMax) * 100) }
