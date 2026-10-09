@@ -19,8 +19,8 @@
 //
 //  Usage:
 //    swift hr-overlay.swift <video> <hr.csv> [--sync V=C] [--offset SEC]
-//                           [--preview VIDEOTIME] [--out FILE]
-//  --preview renders 20 s from VIDEOTIME so you can check sync quickly.
+//                           [--preview VIDEOTIME [--length DURATION]] [--out FILE]
+//  --preview renders 20 s (or --length) from VIDEOTIME to check sync and look.
 //
 //  Needs ffmpeg/ffprobe (brew install ffmpeg).
 //
@@ -95,6 +95,7 @@ var positional: [String] = []
 var syncArg: String?
 var offsetNudge = 0.0
 var previewAt: Double?
+var previewLength = 20.0
 var outPath: String?
 
 var argv = CommandLine.arguments.dropFirst().makeIterator()
@@ -107,6 +108,9 @@ while let arg = argv.next() {
     case "--preview":
         guard let value = argv.next().flatMap(parseVideoTime) else { fail("--preview needs a video time, e.g. --preview 5:30") }
         previewAt = value
+    case "--length":
+        guard let value = argv.next().flatMap(parseVideoTime) else { fail("--length needs a duration, e.g. --length 5:00") }
+        previewLength = value
     case "--out": outPath = argv.next()
     case "-h", "--help":
         print("usage: swift hr-overlay.swift <video> <hr.csv> [--sync VIDEO=CLOCK] [--offset SEC] [--preview VIDEOTIME] [--out FILE]")
@@ -242,7 +246,7 @@ var ass = """
 
     [V4+ Styles]
     Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-    Style: HR,AvenirNext-Bold,\(Int(fontSize)),&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,\(String(format: "%.1f", fontSize * 0.07)),\(String(format: "%.1f", fontSize * 0.04)),1,0,0,0,1
+    Style: HR,AvenirNext-Bold,\(Int(fontSize)),&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,0,1,0,0,0,1
 
     [Events]
     Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -274,11 +278,27 @@ do { try ass.write(to: assFile, atomically: true, encoding: .utf8) } catch { fai
 
 let videoURL = URL(fileURLWithPath: videoPath)
 let output = outPath ?? videoURL.deletingPathExtension().path + (previewAt == nil ? "-hr.mp4" : "-hr-preview.mp4")
+// Frosted "ultra-thin material" card behind the stats: the video under it,
+// blurred, lightly darkened and clipped to a rounded rect. Sized for the
+// widest content ("100% max", "Z4 Threshold"); dimensions even for 4:2:0.
+func even(_ value: Double) -> Int { Int(value / 2) * 2 }
+let pad = fontSize * 0.4
+let cardX = even(margin - pad), cardY = even(margin - pad)
+let cardW = even(fontSize * 4.7), cardH = even(fontSize * 2.75)
+let radius = Int(fontSize * 0.4)
+let mask = "color=c=black:s=\(cardW)x\(cardH),format=gray,"
+    + "geq=lum='255*clip(\(radius)+0.5-hypot(X-clip(X,\(radius),W-1-\(radius)),Y-clip(Y,\(radius),H-1-\(radius))),0,1)'"
+let filter = "[0:v]split[base][src];"
+    + "[src]crop=\(cardW):\(cardH):\(cardX):\(cardY),gblur=sigma=\(Int(fontSize * 0.3)),"
+    + "drawbox=c=black@0.25:t=fill,format=yuva420p[frost];"
+    + "[frost][1:v]alphamerge[card];"
+    + "[base][card]overlay=\(cardX):\(cardY):shortest=1,ass=\(assFile.path)[out]"
+
 var ffmpegArgs = ["-hide_banner", "-loglevel", "warning", "-stats", "-y"]
-if let previewAt { ffmpegArgs += ["-ss", String(previewAt), "-t", "20"] }
-ffmpegArgs += ["-i", videoPath,
-               "-map", "0:v:0", "-map", "0:a:0?",
-               "-vf", "ass=\(assFile.path)",
+if let previewAt { ffmpegArgs += ["-ss", String(previewAt), "-t", String(previewLength)] }
+ffmpegArgs += ["-i", videoPath, "-f", "lavfi", "-i", mask,
+               "-filter_complex", filter,
+               "-map", "[out]", "-map", "0:a:0?", "-shortest",
                "-c:v", "hevc_videotoolbox", "-q:v", "65", "-tag:v", "hvc1",
                "-c:a", "copy", "-movflags", "+faststart", output]
 print("Rendering \(output)…")
