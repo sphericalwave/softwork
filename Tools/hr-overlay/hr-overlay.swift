@@ -299,17 +299,21 @@ let output = outPath ?? videoURL.deletingPathExtension().path + (previewAt == ni
 func even(_ value: Double) -> Int { Int(value / 2) * 2 }
 let pad = fontSize * 0.4
 let cardX = even(margin - pad), cardY = even(margin - pad)
-let cardW = even(fontSize * 5.2), cardH = even(fontSize * 2.75)
+// Session HR chart under the zone line: zone bands (Z1–Z5) with the HR line,
+// x spanning the whole video and filling in as it plays. Redrawn every
+// chartInterval seconds as a PNG sequence.
+let cardW = even(fontSize * 4.7)
+let chartX = even(margin), chartY = even(margin + fontSize * 2.25)
+let chartW = even(Double(cardW) - 2 * pad), chartH = even(fontSize * 1.2)
+let cardH = even(Double(chartY + chartH) + pad - Double(cardY))
 let radius = Int(fontSize * 0.4)
-
-// Session HR chart in the card's lower right, beside bpm + zone: zone bands
-// (Z1–Z5) with the HR line, x spanning the whole video and filling in as it
-// plays. Redrawn every chartInterval seconds as a PNG sequence.
-let chartX = even(margin + fontSize * 2.4), chartY = even(margin + fontSize * 1.15)
-let chartW = even(Double(cardX + cardW) - pad - Double(chartX)), chartH = even(fontSize * 0.95)
 let chartDir = workDir.appendingPathComponent("chart")
 try? FileManager.default.createDirectory(at: chartDir, withIntermediateDirectories: true)
 let videoSamples = samples.map { (t: $0.time.timeIntervalSince1970 - videoZero, pct: Double($0.bpm) / Double(hrMax) * 100) }
+// Y range covers the whole video's data (never clipped), at least Z1–Z5.
+let inVideo = videoSamples.filter { $0.t >= 0 && $0.t <= duration }.map(\.pct)
+let chartLo = min(50, inVideo.min() ?? 50) - 3
+let chartHi = max(100, inVideo.max() ?? 100) + 3
 let renderLength = previewAt == nil ? duration : min(previewLength, duration - shift)
 
 func writeChart(upTo videoTime: Double, to url: URL) {
@@ -317,7 +321,7 @@ func writeChart(upTo videoTime: Double, to url: URL) {
                               space: CGColorSpace(name: CGColorSpace.sRGB)!,
                               bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
     let w = Double(chartW), h = Double(chartH)
-    let lo = 40.0, hi = 105.0
+    let lo = chartLo, hi = chartHi
     func y(_ pct: Double) -> Double { (min(max(pct, lo), hi) - lo) / (hi - lo) * h }
     ctx.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: w, height: h),
                        cornerWidth: fontSize * 0.08, cornerHeight: fontSize * 0.08, transform: nil))
