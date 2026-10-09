@@ -24,10 +24,13 @@ nonisolated struct HeartRateCSV: Transferable {
     }
 
     static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .commaSeparatedText) { item in
-            try await WorkoutIntensityService.heartRateCSV(store: item.store, from: item.start,
-                                                           to: item.end, hrMax: item.hrMax)
+        // A real named file: AirDrop ignores suggestedFileName on data exports.
+        FileRepresentation(exportedContentType: .commaSeparatedText) { item in
+            let data = try await WorkoutIntensityService.heartRateCSV(store: item.store, from: item.start,
+                                                                      to: item.end, hrMax: item.hrMax)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(item.filename)
+            try data.write(to: url, options: .atomic)
+            return SentTransferredFile(url)
         }
-        .suggestedFileName { $0.filename }
     }
 }
