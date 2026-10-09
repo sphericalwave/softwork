@@ -109,6 +109,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink { VideoSyncView() } label: {
+                        Label("GoPro Sync Clock", systemImage: "qrcode")
+                    }
+                } header: {
+                    Text("Video")
+                } footer: {
+                    Text("Film the sync clock at the start of a GoPro recording, then long-press the workout in Intensity to export its heart rate for the video overlay.")
+                }
+
+                Section {
                     NavigationLink { DiagnosticsView().brandedToolbars() } label: {
                         Label("Error Log", systemImage: "ladybug")
                     }

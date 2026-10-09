@@ -65,6 +65,7 @@ struct IntensityView: View {
                                                         accessory: "chevron.right")
                                 }
                                 .buttonStyle(.plain)
+                                .contextMenu { exportButton(workout) }
                             } else {
                                 taggableRow(workout)
                             }
@@ -97,11 +98,22 @@ struct IntensityView: View {
             if tag != nil {
                 Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
             }
+            exportButton(workout)
         } label: {
             WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
         }
         .buttonStyle(.plain)
+    }
+
+    /// Shares the workout's heart rate as CSV for Tools/hr-overlay.
+    @ViewBuilder
+    private func exportButton(_ workout: WorkoutIntensity) -> some View {
+        if let csv = viewModel.heartRateCSV(for: workout) {
+            ShareLink(item: csv, preview: SharePreview(csv.filename)) {
+                Label("Export Heart Rate", systemImage: "square.and.arrow.up")
+            }
+        }
     }
 
     private var aggregateCard: some View {

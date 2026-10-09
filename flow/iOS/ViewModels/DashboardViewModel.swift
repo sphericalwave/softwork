@@ -56,6 +56,8 @@ final class DashboardViewModel: ObservableObject {
 
     @Published var isLoading = false
     @Published var errorMessage: String?
+    /// HR max used for the last Intensity load; nil until the first refresh.
+    @Published private(set) var hrMax: Int?
 
     private let health: HealthKitService
     private let intensityService: WorkoutIntensityService
@@ -63,6 +65,13 @@ final class DashboardViewModel: ObservableObject {
     init(health: HealthKitService) {
         self.health = health
         self.intensityService = WorkoutIntensityService(store: health.store)
+    }
+
+    /// The workout's heart rate as a CSV for the video overlay script.
+    func heartRateCSV(for workout: WorkoutIntensity) -> HeartRateCSV? {
+        guard let hrMax else { return nil }
+        return HeartRateCSV(store: health.store, start: workout.start,
+                            end: workout.start.addingTimeInterval(workout.duration), hrMax: hrMax)
     }
 
     /// Seed tiles from the cached snapshot so the UI isn't empty on launch.
@@ -100,6 +109,7 @@ final class DashboardViewModel: ObservableObject {
         // can't leave Intensity empty.
         do {
             let hrMax = MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: formula)
+            self.hrMax = hrMax
             intensities = try await intensityService.recentIntensities(in: window, hrMax: hrMax)
             Self.cacheIntensities(intensities, for: window)
         } catch {
