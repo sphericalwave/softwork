@@ -12,6 +12,7 @@ import HealthKit
 import Combine
 import SessionEngine
 import DiagnosticsKit
+import SwCharts
 
 @MainActor
 final class DashboardViewModel: ObservableObject {
@@ -29,9 +30,6 @@ final class DashboardViewModel: ObservableObject {
             }
         }
 
-        /// Trend bucket: hours for a day, days otherwise.
-        var bucket: Calendar.Component { self == .day ? .hour : .day }
-
         /// From the start of the first day in the window to the end of today.
         var dates: (start: Date, end: Date) {
             let cal = Calendar.current
@@ -47,9 +45,13 @@ final class DashboardViewModel: ObservableObject {
     @Published var restingHR: Double?
     @Published var todayActiveEnergy: Double?
 
-    // Trends (day → value)
-    @Published var hrvTrend: [Date: Double] = [:]
-    @Published var activeEnergyTrend: [Date: Double] = [:]
+    // Trends: one sample per day, a year back, bucketed by the Overview's
+    // D/W/M picker. Independent of the Intensity window.
+    @Published var hrvSamples: [DatedSample] = []
+    @Published var activeEnergySamples: [DatedSample] = []
+
+    /// Covers the 12-month window (current month + 11 before).
+    private static let trendDays = 366
 
     // Intensity
     @Published var intensities: [WorkoutIntensity] = []
@@ -81,14 +83,14 @@ final class DashboardViewModel: ObservableObject {
             async let hrv = health.latestHRV()
             async let resting = health.latestRestingHR()
             async let energy = health.todayActiveEnergy()
-            async let hrvSeries = health.averageHRV(in: window)
-            async let energySeries = health.sumActiveEnergy(in: window)
+            async let hrvSeries = health.dailyAverageHRV(days: Self.trendDays)
+            async let energySeries = health.dailyActiveEnergy(days: Self.trendDays)
 
             latestHRV = try await hrv
             restingHR = try await resting
             todayActiveEnergy = try await energy
-            hrvTrend = try await hrvSeries
-            activeEnergyTrend = try await energySeries
+            hrvSamples = Self.samples(try await hrvSeries)
+            activeEnergySamples = Self.samples(try await energySeries)
 
             saveSnapshot(context: context)
         } catch {
@@ -106,6 +108,10 @@ final class DashboardViewModel: ObservableObject {
             ErrorLog.shared.error("Dashboard", "Workout intensity load failed", error: error)
             errorMessage = error.localizedDescription
         }
+    }
+
+    private static func samples(_ daily: [Date: Double]) -> [DatedSample] {
+        daily.map { DatedSample(date: $0.key, value: $0.value) }
     }
 
     /// Shows the last workouts computed for `window` until HealthKit answers.

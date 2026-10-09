@@ -50,22 +50,22 @@ final class HealthKitService: ObservableObject {
 
     // MARK: - Daily aggregations
 
-    /// Average HRV per bucket (hour for a day window, day otherwise).
-    func averageHRV(in window: DashboardViewModel.TimeWindow) async throws -> [Date: Double] {
+    /// Average HRV per day over the last `days` days.
+    func dailyAverageHRV(days: Int) async throws -> [Date: Double] {
         let unit = HKUnit.secondUnit(with: .milli)
-        let (start, end) = window.dates
+        let (start, end) = Self.windowDates(days: days)
         return try await statisticsCollection(.heartRateVariabilitySDNN, from: start, to: end,
-                                               bucket: window.bucket, options: .discreteAverage) {
+                                               bucket: .day, options: .discreteAverage) {
             $0.averageQuantity()?.doubleValue(for: unit)
         }
     }
 
-    /// Active energy per bucket (hour for a day window, day otherwise).
-    func sumActiveEnergy(in window: DashboardViewModel.TimeWindow) async throws -> [Date: Double] {
+    /// Active energy per day over the last `days` days.
+    func dailyActiveEnergy(days: Int) async throws -> [Date: Double] {
         let unit = HKUnit.largeCalorie()
-        let (start, end) = window.dates
+        let (start, end) = Self.windowDates(days: days)
         return try await statisticsCollection(.activeEnergyBurned, from: start, to: end,
-                                               bucket: window.bucket, options: .cumulativeSum) {
+                                               bucket: .day, options: .cumulativeSum) {
             $0.sumQuantity()?.doubleValue(for: unit)
         }
     }

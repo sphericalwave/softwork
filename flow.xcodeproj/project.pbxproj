@@ -13,6 +13,7 @@
 		3C1E7A52D9B04F6A8E21B0C1 /* ZoneUI in Frameworks */ = {isa = PBXBuildFile; productRef = 3C1E7A52D9B04F6A8E21B0C3 /* ZoneUI */; };
 		5E7A1C40B2D94F1E8A3C6D01 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 5E7A1C40B2D94F1E8A3C6D03 /* Persistence */; };
 		1B73E6E37789E4010B0BF0D6 /* DiagnosticsKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6589D5A9A51D495557656B3E /* DiagnosticsKit */; };
+		5C0A11E2F1B44D0E9A6C7B01 /* SwCharts in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0A11E2F1B44D0E9A6C7B03 /* SwCharts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -110,6 +111,7 @@
 				3C1E7A52D9B04F6A8E21B0C1 /* ZoneUI in Frameworks */,
 				5E7A1C40B2D94F1E8A3C6D01 /* Persistence in Frameworks */,
 				1B73E6E37789E4010B0BF0D6 /* DiagnosticsKit in Frameworks */,
+				5C0A11E2F1B44D0E9A6C7B01 /* SwCharts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,6 +169,7 @@
 				3C1E7A52D9B04F6A8E21B0C3 /* ZoneUI */,
 				5E7A1C40B2D94F1E8A3C6D03 /* Persistence */,
 				6589D5A9A51D495557656B3E /* DiagnosticsKit */,
+				5C0A11E2F1B44D0E9A6C7B03 /* SwCharts */,
 			);
 			productName = flow;
 			productReference = AFB5C3322FF9AF4D00A7C2F6 /* flow.app */;
@@ -232,6 +235,7 @@
 				3C1E7A52D9B04F6A8E21B0C2 /* XCLocalSwiftPackageReference "ZoneUI" */,
 				5E7A1C40B2D94F1E8A3C6D02 /* XCLocalSwiftPackageReference "Persistence" */,
 				C927220D6643E7BC84DA9F27 /* XCRemoteSwiftPackageReference "DiagnosticsKit" */,
+				5C0A11E2F1B44D0E9A6C7B02 /* XCRemoteSwiftPackageReference "SwCharts" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AFB5C3332FF9AF4D00A7C2F6 /* Products */;
@@ -623,6 +627,14 @@
 				kind = branch;
 			};
 		};
+		5C0A11E2F1B44D0E9A6C7B02 /* XCRemoteSwiftPackageReference "SwCharts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sphericalwave/SwCharts.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -655,6 +667,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C927220D6643E7BC84DA9F27 /* XCRemoteSwiftPackageReference "DiagnosticsKit" */;
 			productName = DiagnosticsKit;
+		};
+		5C0A11E2F1B44D0E9A6C7B03 /* SwCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0A11E2F1B44D0E9A6C7B02 /* XCRemoteSwiftPackageReference "SwCharts" */;
+			productName = SwCharts;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
