@@ -56,9 +56,6 @@
 				iOS/Views/Overview/OverviewView.swift = (
 					ios,
 				);
-				iOS/Views/Overview/TrendChart.swift = (
-					ios,
-				);
 				iOS/Views/RootView.swift = (
 					ios,
 				);
