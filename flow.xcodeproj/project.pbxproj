@@ -73,6 +73,9 @@
 				macOS/flowApp.swift = (
 					macos,
 				);
+				LaunchScreen.storyboard = (
+					ios,
+				);
 			};
 			target = AFB5C3312FF9AF4D00A7C2F6 /* flow */;
 		};
