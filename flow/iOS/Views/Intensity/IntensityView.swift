@@ -192,3 +192,19 @@ extension HKWorkoutActivityType {
         }
     }
 }
+
+/// Day/Week/Month trailing-window selector for Intensity's principal slot.
+/// RootView reloads when it changes.
+struct WindowPicker: View {
+    @Binding var window: DashboardViewModel.TimeWindow
+
+    var body: some View {
+        Picker("Timeframe", selection: $window) {
+            ForEach(DashboardViewModel.TimeWindow.allCases) { w in
+                Text(w.label).tag(w)
+            }
+        }
+        .pickerStyle(.segmented)
+        .frame(width: 180)
+    }
+}

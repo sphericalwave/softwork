@@ -7,10 +7,11 @@
 
 import SwiftUI
 import AthleteFeatures
+import SwCharts
 
 struct OverviewView: View {
     @ObservedObject var viewModel: DashboardViewModel
-    @Binding var window: DashboardViewModel.TimeWindow
+    @AppStorage("overviewChartPeriod") private var period: ChartPeriod = .week
     let refresh: () async -> Void
 
     var body: some View {
@@ -19,19 +20,25 @@ struct OverviewView: View {
                 VStack(spacing: 16) {
                     tiles
 
-                    TrendChart(title: "HRV",
-                               unit: "ms avg / \(bucketName)",
-                               series: viewModel.hrvTrend,
-                               bucket: window.bucket,
-                               tint: .green,
-                               style: .line)
+                    PeriodChartView(title: "HRV",
+                                    samples: viewModel.hrvSamples,
+                                    period: period,
+                                    aggregation: .average,
+                                    valueLabel: { "\(Int($0.rounded())) ms" },
+                                    risingColor: .green,
+                                    fallingColor: .red)
+                        .padding(14)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
 
-                    TrendChart(title: "Active Energy",
-                               unit: "kcal / \(bucketName)",
-                               series: viewModel.activeEnergyTrend,
-                               bucket: window.bucket,
-                               tint: .orange,
-                               style: .bar)
+                    PeriodChartView(title: "Active Energy",
+                                    samples: viewModel.activeEnergySamples,
+                                    period: period,
+                                    aggregation: .sum,
+                                    style: .bar,
+                                    valueLabel: { $0.formatted(.number.notation(.compactName)) + " kcal" },
+                                    barColor: .orange)
+                        .padding(14)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
                 .padding()
             }
@@ -39,7 +46,7 @@ struct OverviewView: View {
             .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    WindowPicker(window: $window)
+                    PeriodPicker(selection: $period)
                 }
             }
             .refreshable { await refresh() }
@@ -54,8 +61,6 @@ struct OverviewView: View {
         }
     }
 
-    private var bucketName: String { window.bucket == .hour ? "hour" : "day" }
-
     private var tiles: some View {
         HStack(spacing: 12) {
             MetricTile(title: "HRV", value: viewModel.latestHRV, unit: "ms",
@@ -65,21 +70,5 @@ struct OverviewView: View {
             MetricTile(title: "Resting HR", value: viewModel.restingHR, unit: "bpm",
                        systemImage: "heart", tint: .red)
         }
-    }
-}
-
-/// Day/Week/Month selector for the nav bar's principal slot. RootView
-/// reloads when it changes.
-struct WindowPicker: View {
-    @Binding var window: DashboardViewModel.TimeWindow
-
-    var body: some View {
-        Picker("Timeframe", selection: $window) {
-            ForEach(DashboardViewModel.TimeWindow.allCases) { w in
-                Text(w.label).tag(w)
-            }
-        }
-        .pickerStyle(.segmented)
-        .frame(width: 180)
     }
 }

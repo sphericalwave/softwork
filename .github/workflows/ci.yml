@@ -52,4 +52,5 @@ jobs:
           xcodebuild -project flow.xcodeproj -scheme flow
           -destination 'platform=iOS Simulator,name=${{ env.SIM_NAME }}'
           -derivedDataPath .build/dd
+          -parallel-testing-enabled NO
           -only-testing:flowUITests test
