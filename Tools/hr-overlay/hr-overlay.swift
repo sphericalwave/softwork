@@ -207,15 +207,16 @@ if covered <= 0 { fail("Heart rate doesn't overlap the video with this sync — 
 
 // MARK: - Overlay (ASS subtitles)
 
-/// Zone colors, matching flow's ZoneUI (gray/blue/green/yellow/orange/red), as ASS &HBBGGRR.
-func zoneColor(percent: Double) -> String {
+/// Zone label and color, matching flow's HRZone + ZoneUI (gray/blue/green/yellow/orange/red);
+/// colors as ASS &HBBGGRR.
+func zone(percent: Double) -> (label: String, color: String) {
     switch percent {
-    case ..<50: return "&H938E8E&"   // Z0 rest
-    case ..<60: return "&HFF840A&"   // Z1 recovery
-    case ..<70: return "&H58D130&"   // Z2 endurance
-    case ..<80: return "&H0AD6FF&"   // Z3 tempo
-    case ..<90: return "&H0A9FFF&"   // Z4 threshold
-    default:    return "&H3A45FF&"   // Z5 max
+    case ..<50: return ("Z0 Rest", "&H938E8E&")
+    case ..<60: return ("Z1 Recovery", "&HFF840A&")
+    case ..<70: return ("Z2 Endurance", "&H58D130&")
+    case ..<80: return ("Z3 Tempo", "&H0AD6FF&")
+    case ..<90: return ("Z4 Threshold", "&H0A9FFF&")
+    default:    return ("Z5 Max", "&H3A45FF&")
     }
 }
 
@@ -241,7 +242,7 @@ var ass = """
 
     [V4+ Styles]
     Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-    Style: HR,Helvetica Neue,\(Int(fontSize)),&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,\(String(format: "%.1f", fontSize * 0.07)),\(String(format: "%.1f", fontSize * 0.04)),1,0,0,0,1
+    Style: HR,AvenirNext-Bold,\(Int(fontSize)),&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,\(String(format: "%.1f", fontSize * 0.07)),\(String(format: "%.1f", fontSize * 0.04)),1,0,0,0,1
 
     [Events]
     Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -253,11 +254,13 @@ for (i, sample) in samples.enumerated() {
     let end = min(nextTime, start + maxGap)
     guard end > 0, start < duration - shift else { continue }
     let percent = Double(sample.bpm) / Double(hrMax) * 100
-    let color = zoneColor(percent: percent)
-    let text = "{\\an1\\pos(\(Int(margin)),\(height - Int(margin)))}"
-        + "{\\c\(color)\\fscx\(heartScale)\\fscy\(heartScale)\\p1}\(heartPath){\\p0\\fscx100\\fscy100}"
-        + "{\\c&HFFFFFF&}  \(sample.bpm){\\fs\(Int(fontSize * 0.6))} bpm  "
-        + "{\\fs\(Int(fontSize))\\c\(color)}\(Int(percent.rounded()))%{\\fs\(Int(fontSize * 0.6))} max"
+    let (label, color) = zone(percent: percent)
+    // Top-left stack, largest first: % HR max, bpm, zone.
+    let text = "{\\an7\\pos(\(Int(margin)),\(Int(margin)))}"
+        + "{\\c\(color)\\fscx\(heartScale)\\fscy\(heartScale)\\p1}\(heartPath){\\p0\\fscx100\\fscy100} "
+        + "\(Int(percent.rounded()))%{\\fs\(Int(fontSize * 0.5))} max"
+        + "\\N{\\fs\(Int(fontSize * 0.62))\\c&HFFFFFF&}\(sample.bpm){\\fs\(Int(fontSize * 0.42))} bpm"
+        + "\\N{\\fs\(Int(fontSize * 0.45))\\c\(color)}\(label)"
     ass += "Dialogue: 0,\(assTime(start)),\(assTime(end)),HR,,0,0,0,,\(text)\n"
 }
 
