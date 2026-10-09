@@ -3,7 +3,7 @@
 //  flow
 //
 //  A workout's heart rate as a shareable CSV file, fetched from Health only
-//  when the share sheet asks for it. Feeds Tools/hr-overlay.
+//  when the share sheet asks for it. Feeds youtube-uploader's hr-overlay.swift.
 //
 
 import Foundation

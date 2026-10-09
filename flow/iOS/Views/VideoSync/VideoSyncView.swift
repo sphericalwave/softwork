@@ -3,8 +3,8 @@
 //  flow
 //
 //  Full-screen clock + QR code for syncing heart rate to GoPro video. Film this
-//  screen for a couple of seconds; Tools/hr-overlay reads the QR to line up
-//  the video timeline with the Health samples.
+//  screen for a couple of seconds; youtube-uploader's hr-overlay.swift reads
+//  the QR to line up the video timeline with the Health samples.
 //
 
 import SwiftUI

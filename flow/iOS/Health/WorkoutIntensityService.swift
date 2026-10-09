@@ -100,7 +100,7 @@ final class WorkoutIntensityService {
     // MARK: - Export
 
     /// The workout's heart-rate samples as CSV (`timestamp,bpm,hrmax`), for the
-    /// Tools/hr-overlay video script. Timestamps are UTC ISO 8601 with millis.
+    /// youtube-uploader's hr-overlay.swift video script. Timestamps are UTC ISO 8601 with millis.
     nonisolated static func heartRateCSV(store: HKHealthStore, from start: Date, to end: Date,
                                          hrMax: Int) async throws -> Data {
         let samples = try await heartRateSamples(store: store, from: start, to: end)

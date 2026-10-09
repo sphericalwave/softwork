@@ -106,7 +106,7 @@ struct IntensityView: View {
         .buttonStyle(.plain)
     }
 
-    /// Shares the workout's heart rate as CSV for Tools/hr-overlay.
+    /// Shares the workout's heart rate as CSV for youtube-uploader's hr-overlay.swift.
     @ViewBuilder
     private func exportButton(_ workout: WorkoutIntensity) -> some View {
         if let csv = viewModel.heartRateCSV(for: workout) {
