@@ -58,7 +58,7 @@ struct RootView: View {
                 .tabItem { Label("Spar", systemImage: "figure.martial.arts") }
                 .tag(3)
 
-            OverviewView(viewModel: viewModel, window: windowBinding, refresh: refresh)
+            OverviewView(viewModel: viewModel, refresh: refresh)
                 .tabItem { Label("Overview", systemImage: "heart.text.square") }
                 .tag(0)
 
