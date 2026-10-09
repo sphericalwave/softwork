@@ -22,12 +22,16 @@
 //    swift hr-overlay.swift <video> <hr.csv> [--sync V=C] [--offset SEC]
 //                           [--preview VIDEOTIME [--length DURATION]] [--out FILE]
 //  --preview renders 20 s (or --length) from VIDEOTIME to check sync and look.
+//  --chart-interval SEC redraws the session HR chart every SEC (default 30).
 //
 //  Needs ffmpeg/ffprobe (brew install ffmpeg).
 //
 
 import Foundation
 import Vision
+import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
 
 // MARK: - Process helpers
 
@@ -99,6 +103,7 @@ var previewAt: Double?
 var previewLength = 20.0
 /// Measured max (191 bpm on 2026-10-08), used over the CSV's age-based estimate.
 var hrMaxOverride: Int? = 191
+var chartInterval = 30.0
 var outPath: String?
 
 var argv = CommandLine.arguments.dropFirst().makeIterator()
@@ -117,6 +122,9 @@ while let arg = argv.next() {
     case "--hrmax":
         guard let value = argv.next().flatMap(Int.init), value > 0 else { fail("--hrmax needs bpm, e.g. --hrmax 191") }
         hrMaxOverride = value
+    case "--chart-interval":
+        guard let value = argv.next().flatMap(Double.init), value > 0 else { fail("--chart-interval needs seconds, e.g. 30") }
+        chartInterval = value
     case "--out": outPath = argv.next()
     case "-h", "--help":
         print("usage: swift hr-overlay.swift <video> <hr.csv> [--sync VIDEO=CLOCK] [--offset SEC] [--preview VIDEOTIME] [--out FILE]")
@@ -291,19 +299,78 @@ let output = outPath ?? videoURL.deletingPathExtension().path + (previewAt == ni
 func even(_ value: Double) -> Int { Int(value / 2) * 2 }
 let pad = fontSize * 0.4
 let cardX = even(margin - pad), cardY = even(margin - pad)
-let cardW = even(fontSize * 4.7), cardH = even(fontSize * 2.75)
+let cardW = even(fontSize * 5.2), cardH = even(fontSize * 2.75)
 let radius = Int(fontSize * 0.4)
+
+// Session HR chart in the card's lower right, beside bpm + zone: zone bands
+// (Z1–Z5) with the HR line, x spanning the whole video and filling in as it
+// plays. Redrawn every chartInterval seconds as a PNG sequence.
+let chartX = even(margin + fontSize * 2.4), chartY = even(margin + fontSize * 1.15)
+let chartW = even(Double(cardX + cardW) - pad - Double(chartX)), chartH = even(fontSize * 0.95)
+let chartDir = workDir.appendingPathComponent("chart")
+try? FileManager.default.createDirectory(at: chartDir, withIntermediateDirectories: true)
+let videoSamples = samples.map { (t: $0.time.timeIntervalSince1970 - videoZero, pct: Double($0.bpm) / Double(hrMax) * 100) }
+let renderLength = previewAt == nil ? duration : min(previewLength, duration - shift)
+
+func writeChart(upTo videoTime: Double, to url: URL) {
+    guard let ctx = CGContext(data: nil, width: chartW, height: chartH, bitsPerComponent: 8, bytesPerRow: 0,
+                              space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+    let w = Double(chartW), h = Double(chartH)
+    let lo = 40.0, hi = 105.0
+    func y(_ pct: Double) -> Double { (min(max(pct, lo), hi) - lo) / (hi - lo) * h }
+    ctx.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: w, height: h),
+                       cornerWidth: fontSize * 0.08, cornerHeight: fontSize * 0.08, transform: nil))
+    ctx.clip()
+    // Zone bands, flow's colors at low alpha so the frosted card shows through.
+    let bands: [(Double, Double, (Double, Double, Double))] = [
+        (50, 60, (0.04, 0.52, 1.0)), (60, 70, (0.19, 0.82, 0.35)), (70, 80, (1.0, 0.84, 0.04)),
+        (80, 90, (1.0, 0.62, 0.04)), (90, hi, (1.0, 0.27, 0.23)),
+    ]
+    for (from, to, c) in bands {
+        ctx.setFillColor(CGColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 0.38))
+        ctx.fill(CGRect(x: 0, y: y(from), width: w, height: y(to) - y(from)))
+    }
+    let points = videoSamples.filter { $0.t >= 0 && $0.t <= videoTime }
+    guard points.count > 1 else { writePNG(ctx, url); return }
+    ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+    ctx.setLineWidth(max(1.5, fontSize * 0.035))
+    ctx.setLineJoin(.round)
+    ctx.beginPath()
+    for (i, p) in points.enumerated() {
+        let pt = CGPoint(x: p.t / duration * w, y: y(p.pct))
+        if i == 0 { ctx.move(to: pt) } else { ctx.addLine(to: pt) }
+    }
+    ctx.strokePath()
+    writePNG(ctx, url)
+}
+
+func writePNG(_ ctx: CGContext, _ url: URL) {
+    guard let image = ctx.makeImage(),
+          let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else { return }
+    CGImageDestinationAddImage(dest, image, nil)
+    CGImageDestinationFinalize(dest)
+}
+
+// Frame i shows HR up to (output time i × interval) and holds until the next.
+let chartFrames = Int(renderLength / chartInterval) + 1
+for i in 0..<chartFrames {
+    writeChart(upTo: shift + Double(i) * chartInterval,
+               to: chartDir.appendingPathComponent(String(format: "%05d.png", i)))
+}
 let mask = "color=c=black:s=\(cardW)x\(cardH),format=gray,"
     + "geq=lum='255*clip(\(radius)+0.5-hypot(X-clip(X,\(radius),W-1-\(radius)),Y-clip(Y,\(radius),H-1-\(radius))),0,1)'"
 let filter = "[0:v]split[base][src];"
     + "[src]crop=\(cardW):\(cardH):\(cardX):\(cardY),gblur=sigma=\(Int(fontSize * 0.3)),"
     + "drawbox=c=black@0.25:t=fill,format=yuva420p[frost];"
     + "[frost][1:v]alphamerge[card];"
-    + "[base][card]overlay=\(cardX):\(cardY):shortest=1,ass=\(assFile.path)[out]"
+    + "[base][card]overlay=\(cardX):\(cardY):shortest=1[carded];"
+    + "[carded][2:v]overlay=\(chartX):\(chartY):eof_action=repeat,ass=\(assFile.path)[out]"
 
 var ffmpegArgs = ["-hide_banner", "-loglevel", "warning", "-stats", "-y"]
 if let previewAt { ffmpegArgs += ["-ss", String(previewAt), "-t", String(previewLength)] }
 ffmpegArgs += ["-i", videoPath, "-f", "lavfi", "-i", mask,
+               "-framerate", "1/\(chartInterval)", "-i", chartDir.appendingPathComponent("%05d.png").path,
                "-filter_complex", filter,
                "-map", "[out]", "-map", "0:a:0?", "-shortest",
                "-c:v", "hevc_videotoolbox", "-q:v", "65", "-tag:v", "hvc1",
