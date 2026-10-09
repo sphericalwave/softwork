@@ -42,8 +42,8 @@ final class WorkoutIntensityService {
 
         var out: [WorkoutIntensity] = []
         for workout in workouts {
-            let samples = try await heartRateSamples(in: workout)
-            let readings = samples.map { (date: $0.startDate, bpm: bpm($0)) }
+            let samples = try await Self.heartRateSamples(store: store, from: workout.startDate, to: workout.endDate)
+            let readings = samples.map { (date: $0.startDate, bpm: Self.bpm($0)) }
             let zones = ZoneBucketer.distribution(samples: readings, hrMax: hrMax)
             var avgPct: Double? = nil
             if !readings.isEmpty {
@@ -77,10 +77,10 @@ final class WorkoutIntensityService {
         }
     }
 
-    private func heartRateSamples(in workout: HKWorkout) async throws -> [HKQuantitySample] {
+    nonisolated private static func heartRateSamples(store: HKHealthStore, from start: Date,
+                                                     to end: Date) async throws -> [HKQuantitySample] {
         let hrType = HKQuantityType(.heartRate)
-        let predicate = HKQuery.predicateForSamples(withStart: workout.startDate,
-                                                    end: workout.endDate, options: .strictStartDate)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[HKQuantitySample], Error>) in
             let query = HKSampleQuery(sampleType: hrType, predicate: predicate,
@@ -92,8 +92,24 @@ final class WorkoutIntensityService {
         }
     }
 
-    private func bpm(_ sample: HKQuantitySample) -> Int {
+    nonisolated private static func bpm(_ sample: HKQuantitySample) -> Int {
         let unit = HKUnit.count().unitDivided(by: .minute())
         return Int(sample.quantity.doubleValue(for: unit).rounded())
+    }
+
+    // MARK: - Export
+
+    /// The workout's heart-rate samples as CSV (`timestamp,bpm,hrmax`), for the
+    /// youtube-uploader's hr-overlay.swift video script. Timestamps are UTC ISO 8601 with millis.
+    nonisolated static func heartRateCSV(store: HKHealthStore, from start: Date, to end: Date,
+                                         hrMax: Int) async throws -> Data {
+        let samples = try await heartRateSamples(store: store, from: start, to: end)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var csv = "timestamp,bpm,hrmax\n"
+        for sample in samples {
+            csv += "\(formatter.string(from: sample.startDate)),\(bpm(sample)),\(hrMax)\n"
+        }
+        return Data(csv.utf8)
     }
 }

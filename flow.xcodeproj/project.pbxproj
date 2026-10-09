@@ -41,6 +41,9 @@
 				iOS/Health/HealthKitService.swift = (
 					ios,
 				);
+				iOS/Health/HeartRateCSV.swift = (
+					ios,
+				);
 				iOS/Health/WorkoutIntensityService.swift = (
 					ios,
 				);
@@ -60,6 +63,9 @@
 					ios,
 				);
 				iOS/Views/Settings/SettingsView.swift = (
+					ios,
+				);
+				iOS/Views/VideoSync/VideoSyncView.swift = (
 					ios,
 				);
 				iOS/flowApp.swift = (
