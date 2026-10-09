@@ -16,6 +16,7 @@
 //         --sync 1:12=start          workout started 1m12s into the video
 //         --sync 0:07.4=14:03:22.5
 //    --offset SEC nudges either: positive shows heart rate from later.
+//  --hrmax BPM sets HR max (default 191, the measured max; flow's exported value is ignored).
 //
 //  Usage:
 //    swift hr-overlay.swift <video> <hr.csv> [--sync V=C] [--offset SEC]
@@ -96,6 +97,8 @@ var syncArg: String?
 var offsetNudge = 0.0
 var previewAt: Double?
 var previewLength = 20.0
+/// Measured max (191 bpm on 2026-10-08), used over the CSV's age-based estimate.
+var hrMaxOverride: Int? = 191
 var outPath: String?
 
 var argv = CommandLine.arguments.dropFirst().makeIterator()
@@ -111,6 +114,9 @@ while let arg = argv.next() {
     case "--length":
         guard let value = argv.next().flatMap(parseVideoTime) else { fail("--length needs a duration, e.g. --length 5:00") }
         previewLength = value
+    case "--hrmax":
+        guard let value = argv.next().flatMap(Int.init), value > 0 else { fail("--hrmax needs bpm, e.g. --hrmax 191") }
+        hrMaxOverride = value
     case "--out": outPath = argv.next()
     case "-h", "--help":
         print("usage: swift hr-overlay.swift <video> <hr.csv> [--sync VIDEO=CLOCK] [--offset SEC] [--preview VIDEOTIME] [--out FILE]")
@@ -120,7 +126,8 @@ while let arg = argv.next() {
 }
 guard positional.count == 2 else { fail("usage: swift hr-overlay.swift <video> <hr.csv> [options] (see --help)") }
 let videoPath = positional[0]
-let (samples, hrMax) = loadCSV(positional[1])
+let (samples, csvHRMax) = loadCSV(positional[1])
+let hrMax = hrMaxOverride ?? csvHRMax
 
 // MARK: - Video info
 
