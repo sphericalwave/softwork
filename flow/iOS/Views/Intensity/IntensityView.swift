@@ -60,6 +60,9 @@ struct IntensityView: View {
                             if let session = sessionsByWorkoutID[workout.id] {
                                 NavigationLink {
                                     TrainingSessionDetailView(record: session)
+                                        .toolbar {
+                                            ToolbarItem(placement: .topBarTrailing) { exportButton(workout) }
+                                        }
                                 } label: {
                                     WorkoutIntensityRow(intensity: workout, title: session.kindLabel,
                                                         accessory: "chevron.right")
