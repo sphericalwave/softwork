@@ -99,17 +99,62 @@ final class WorkoutIntensityService {
 
     // MARK: - Export
 
-    /// The workout's heart-rate samples as CSV (`timestamp,bpm,hrmax`), for the
+    /// The workout's heart-rate samples as CSV (`timestamp,bpm,hrmax,kcal`), for the
     /// youtube-uploader's hr-overlay.swift video script. Timestamps are UTC ISO 8601 with millis.
+    /// `kcal` is active energy burned since the workout start, one decimal; empty when Health
+    /// has no active energy for the workout.
     nonisolated static func heartRateCSV(store: HKHealthStore, from start: Date, to end: Date,
                                          hrMax: Int) async throws -> Data {
         let samples = try await heartRateSamples(store: store, from: start, to: end)
+        let energy = try await activeEnergyBuckets(store: store, from: start, to: end)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var csv = "timestamp,bpm,hrmax\n"
+        var csv = "timestamp,bpm,hrmax,kcal\n"
         for sample in samples {
-            csv += "\(formatter.string(from: sample.startDate)),\(bpm(sample)),\(hrMax)\n"
+            let kcal = energy.isEmpty ? "" : String(format: "%.1f", cumulativeKcal(energy, at: sample.startDate))
+            csv += "\(formatter.string(from: sample.startDate)),\(bpm(sample)),\(hrMax),\(kcal)\n"
         }
         return Data(csv.utf8)
+    }
+
+    nonisolated private static let energyBucketSeconds = 5
+
+    /// Active energy per 5 s bucket from `start`, ascending. A statistics query so overlapping
+    /// Watch and iPhone samples are merged rather than double counted.
+    nonisolated private static func activeEnergyBuckets(store: HKHealthStore, from start: Date,
+                                                        to end: Date) async throws -> [(start: Date, kcal: Double)] {
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+        var interval = DateComponents()
+        interval.second = energyBucketSeconds
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[(start: Date, kcal: Double)], Error>) in
+            let query = HKStatisticsCollectionQuery(quantityType: HKQuantityType(.activeEnergyBurned),
+                                                    quantitySamplePredicate: predicate,
+                                                    options: .cumulativeSum,
+                                                    anchorDate: start,
+                                                    intervalComponents: interval)
+            query.initialResultsHandler = { _, results, error in
+                if let error { cont.resume(throwing: error); return }
+                var out: [(start: Date, kcal: Double)] = []
+                results?.enumerateStatistics(from: start, to: end) { stats, _ in
+                    if let sum = stats.sumQuantity() {
+                        out.append((stats.startDate, sum.doubleValue(for: .kilocalorie())))
+                    }
+                }
+                cont.resume(returning: out)
+            }
+            store.execute(query)
+        }
+    }
+
+    /// Energy from buckets finished by `date`, plus the elapsed share of the bucket it falls in.
+    nonisolated private static func cumulativeKcal(_ buckets: [(start: Date, kcal: Double)], at date: Date) -> Double {
+        let length = Double(energyBucketSeconds)
+        var total = 0.0
+        for bucket in buckets {
+            let elapsed = date.timeIntervalSince(bucket.start)
+            if elapsed <= 0 { break }
+            total += bucket.kcal * min(elapsed / length, 1)
+        }
+        return total
     }
 }
