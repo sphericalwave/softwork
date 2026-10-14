@@ -16,11 +16,19 @@ nonisolated struct HeartRateCSV: Transferable {
     let start: Date
     let end: Date
     let hrMax: Int
+    /// The title shown on the workout's card, e.g. "Wrestling".
+    let workoutName: String
 
+    /// e.g. "2026.10.13_Wrestling_FlowHr.csv"; spaces and slashes in the name become "-".
     var filename: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd-HHmm"
-        return "flow-hr-\(formatter.string(from: start)).csv"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy.MM.dd"
+        let name = workoutName
+            .components(separatedBy: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "/\\")))
+            .filter { !$0.isEmpty }
+            .joined(separator: "-")
+        return "\(formatter.string(from: start))_\(name.isEmpty ? "Workout" : name)_FlowHr.csv"
     }
 
     static var transferRepresentation: some TransferRepresentation {

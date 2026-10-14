@@ -70,10 +70,11 @@ final class DashboardViewModel: ObservableObject {
     }
 
     /// The workout's heart rate as a CSV for the video overlay script.
-    func heartRateCSV(for workout: WorkoutIntensity) -> HeartRateCSV? {
+    func heartRateCSV(for workout: WorkoutIntensity, name: String) -> HeartRateCSV? {
         guard let hrMax else { return nil }
         return HeartRateCSV(store: health.store, start: workout.start,
-                            end: workout.start.addingTimeInterval(workout.duration), hrMax: hrMax)
+                            end: workout.start.addingTimeInterval(workout.duration), hrMax: hrMax,
+                            workoutName: name)
     }
 
     /// Seed tiles from the cached snapshot so the UI isn't empty on launch.
