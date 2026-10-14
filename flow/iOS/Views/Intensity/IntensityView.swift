@@ -61,14 +61,14 @@ struct IntensityView: View {
                                 NavigationLink {
                                     TrainingSessionDetailView(record: session)
                                         .toolbar {
-                                            ToolbarItem(placement: .topBarTrailing) { exportButton(workout) }
+                                            ToolbarItem(placement: .topBarTrailing) { exportButton(workout, name: session.kindLabel) }
                                         }
                                 } label: {
                                     WorkoutIntensityRow(intensity: workout, title: session.kindLabel,
                                                         accessory: "chevron.right")
                                 }
                                 .buttonStyle(.plain)
-                                .contextMenu { exportButton(workout) }
+                                .contextMenu { exportButton(workout, name: session.kindLabel) }
                             } else {
                                 taggableRow(workout)
                             }
@@ -101,7 +101,7 @@ struct IntensityView: View {
             if tag != nil {
                 Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
             }
-            exportButton(workout)
+            exportButton(workout, name: tag?.label ?? workout.activityType.name)
         } label: {
             WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
@@ -111,8 +111,8 @@ struct IntensityView: View {
 
     /// Shares the workout's heart rate as CSV for youtube-uploader's hr-overlay.swift.
     @ViewBuilder
-    private func exportButton(_ workout: WorkoutIntensity) -> some View {
-        if let csv = viewModel.heartRateCSV(for: workout) {
+    private func exportButton(_ workout: WorkoutIntensity, name: String) -> some View {
+        if let csv = viewModel.heartRateCSV(for: workout, name: name) {
             ShareLink(item: csv, preview: SharePreview(csv.filename)) {
                 Label("Export Heart Rate", systemImage: "square.and.arrow.up")
             }
