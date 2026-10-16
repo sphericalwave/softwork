@@ -76,7 +76,8 @@ public final class SoloSparringModel {
     private var sessionStart = Date()
     private var timeoutStart: Date?
     private var readingStarted = false
-    private var record: TrainingSessionRecord?
+    /// The session being recorded, or whose summary is on screen.
+    private(set) var record: TrainingSessionRecord?
     private var buffer: HRBufferFile?
     private var calorieProfile: CalorieProfile?
 

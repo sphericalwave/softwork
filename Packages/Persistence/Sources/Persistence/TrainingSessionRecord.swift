@@ -30,6 +30,9 @@ public final class TrainingSessionRecord {
     public var timeoutCount: Int = 0
     public var secondsOverCeiling: Double = 0
 
+    /// Free text the athlete adds after the session. Added in FlowSchemaV3.
+    public var notes: String = ""
+
     public init(id: UUID, startedAt: Date, kindRaw: String, hrMax: Int) {
         self.id = id
         self.startedAt = startedAt

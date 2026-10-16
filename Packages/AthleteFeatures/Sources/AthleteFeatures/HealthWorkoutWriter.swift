@@ -110,17 +110,17 @@ final class HealthWorkoutWriter {
         }
     }
 
-    /// Saves the session as a workout. The session id is the sync identifier,
-    /// so a retry after a crash replaces rather than duplicates the workout.
-    /// Heart rate or energy the user hasn't allowed is left out, rather than
-    /// failing the whole workout on every retry.
-    func save(_ summary: TrainingSummary, sessionID: UUID) async throws -> UUID {
+    /// Saves the session as a `kind` workout. The session id is the sync
+    /// identifier, so a retry after a crash replaces rather than duplicates
+    /// the workout. Heart rate or energy the user hasn't allowed is left out,
+    /// rather than failing the whole workout on every retry.
+    func save(_ summary: TrainingSummary, kind: WorkoutKind, sessionID: UUID) async throws -> UUID {
         guard HKHealthStore.isHealthDataAvailable() else { throw WriteError.unavailable }
         guard store.authorizationStatus(for: .workoutType()) != .sharingDenied else {
             throw WriteError.workoutsNotAllowed
         }
         let config = HKWorkoutConfiguration()
-        config.activityType = summary.kind.activityType
+        config.activityType = kind.activityType
         config.locationType = .indoor
         let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: .local())
 
@@ -159,6 +159,25 @@ final class HealthWorkoutWriter {
         _ = try await builder.endCollection(at: end)
         guard let workout = try await builder.finishWorkout() else { throw WriteError.noWorkout }
         return workout.uuid
+    }
+
+    /// Removes the session's workout and the heart rate and energy flow saved
+    /// for it, so it can be saved again. Health workouts can't be edited.
+    func deleteSession(sessionID: UUID, from start: Date, to end: Date) async throws {
+        let ours = HKQuery.predicateForObjects(from: HKSource.default())
+        let workout = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeySyncIdentifier,
+                                        allowedValues: [sessionID.uuidString]),
+            ours,
+        ])
+        _ = try await store.deleteObjects(of: .workoutType(), predicate: workout)
+        let window = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate),
+            ours,
+        ])
+        for type in [heartRate, activeEnergy] where store.authorizationStatus(for: type) == .sharingAuthorized {
+            _ = try await store.deleteObjects(of: type, predicate: window)
+        }
     }
 
     // MARK: - Profile reads

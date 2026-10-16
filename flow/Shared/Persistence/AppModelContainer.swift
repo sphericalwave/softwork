@@ -31,18 +31,49 @@ nonisolated enum FlowSchemaV2: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         [MetricSnapshot.self, TrainingSessionRecord.self, SparringRoundRecord.self]
     }
+
+    /// TrainingSessionRecord exactly as V2 shipped it, frozen here so V2's
+    /// hash keeps matching stores written by that build. Never edit.
+    @Model
+    final class TrainingSessionRecord {
+        var id: UUID = UUID()
+        var startedAt: Date = Date()
+        var endedAt: Date?
+        var kindRaw: String = "wrestling"
+        var hrMax: Int = 0
+        var healthKitWorkoutID: UUID?
+        var averageBPM: Int?
+        var maxBPM: Int?
+        var activeCalories: Double?
+        var timeoutCount: Int = 0
+        var secondsOverCeiling: Double = 0
+
+        init() {}
+    }
+}
+
+/// Adds `TrainingSessionRecord.notes` (defaulted to empty), so V2 → V3 is a
+/// lightweight migration and every existing session keeps its data.
+nonisolated enum FlowSchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        [MetricSnapshot.self, Persistence.TrainingSessionRecord.self, SparringRoundRecord.self]
+    }
 }
 
 nonisolated enum FlowMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [FlowSchemaV1.self, FlowSchemaV2.self] }
+    static var schemas: [any VersionedSchema.Type] { [FlowSchemaV1.self, FlowSchemaV2.self, FlowSchemaV3.self] }
     static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: FlowSchemaV1.self, toVersion: FlowSchemaV2.self)]
+        [
+            .lightweight(fromVersion: FlowSchemaV1.self, toVersion: FlowSchemaV2.self),
+            .lightweight(fromVersion: FlowSchemaV2.self, toVersion: FlowSchemaV3.self),
+        ]
     }
 }
 
 enum AppModelContainer {
     static func make() -> ModelContainer {
-        let schema = Schema(versionedSchema: FlowSchemaV2.self)
+        let schema = Schema(versionedSchema: FlowSchemaV3.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             return try ModelContainer(for: schema,

@@ -75,6 +75,22 @@ final class SessionStore {
         save()
     }
 
+    func setKind(_ kind: WorkoutKind, of record: TrainingSessionRecord) {
+        record.kindRaw = kind.rawValue
+        save()
+    }
+
+    func setNotes(_ notes: String, of record: TrainingSessionRecord) {
+        record.notes = notes
+        save()
+    }
+
+    /// Back in the save queue, e.g. before its Health workout is replaced.
+    func markUnsaved(_ record: TrainingSessionRecord) {
+        record.healthKitWorkoutID = nil
+        save()
+    }
+
     /// False if the store couldn't be written; the caller must then keep the
     /// session's buffer file.
     func markSaved(_ record: TrainingSessionRecord, workoutID: UUID) -> Bool {
