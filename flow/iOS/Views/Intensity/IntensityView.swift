@@ -19,15 +19,28 @@ struct IntensityView: View {
     @Binding var window: DashboardViewModel.TimeWindow
     let refresh: () async -> Void
 
-    @Query(filter: #Predicate<TrainingSessionRecord> { $0.healthKitWorkoutID != nil })
-    private var savedSessions: [TrainingSessionRecord]
+    @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil })
+    private var endedSessions: [TrainingSessionRecord]
     @State private var tags = WorkoutTags()
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
     private var sessionsByWorkoutID: [UUID: TrainingSessionRecord] {
-        Dictionary(savedSessions.compactMap { session in
+        Dictionary(endedSessions.compactMap { session in
             session.healthKitWorkoutID.map { ($0, session) }
         }, uniquingKeysWith: { first, _ in first })
+    }
+
+    /// The flow session a workout row belongs to. A session whose workout
+    /// isn't in the loaded list — being re-saved after a type change, or
+    /// re-saved since the last refresh — matches by start time, so its row
+    /// (and an open detail) stays put.
+    private func session(for workout: WorkoutIntensity) -> TrainingSessionRecord? {
+        if let session = sessionsByWorkoutID[workout.id] { return session }
+        let listed = Set(viewModel.intensities.map(\.id))
+        return endedSessions.first { session in
+            !(session.healthKitWorkoutID.map(listed.contains) ?? false)
+                && abs(session.startedAt.timeIntervalSince(workout.start)) < 1
+        }
     }
 
     private var aggregate: [HRZone: TimeInterval] {
@@ -57,7 +70,7 @@ struct IntensityView: View {
                     } else {
                         aggregateCard
                         ForEach(viewModel.intensities) { workout in
-                            if let session = sessionsByWorkoutID[workout.id] {
+                            if let session = session(for: workout) {
                                 NavigationLink {
                                     TrainingSessionDetailView(record: session)
                                         .toolbar {

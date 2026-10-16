@@ -56,6 +56,15 @@ final class HRBufferFile {
         }
     }
 
+    /// Replaces the file's contents, e.g. with a saved session's readings
+    /// read back from Health before it is saved again.
+    func write(_ readings: [(date: Date, bpm: Int)]) throws {
+        try? handle?.close()
+        handle = nil
+        let text = readings.map { "\($0.date.timeIntervalSince1970),\($0.bpm)\n" }.joined()
+        try Data(text.utf8).write(to: url, options: .atomic)
+    }
+
     func delete() {
         try? handle?.close()
         handle = nil

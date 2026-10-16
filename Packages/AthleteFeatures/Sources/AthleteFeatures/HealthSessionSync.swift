@@ -47,6 +47,8 @@ public final class HealthSessionSync {
     private var inFlight: Set<UUID> = []
     /// Session id → last failure message.
     private var failures: [String: String]
+    /// Session id → why its last type change didn't go through.
+    public private(set) var kindChangeErrors: [UUID: String] = [:]
     private let health = HealthWorkoutWriter()
 
     private init() {
@@ -122,6 +124,77 @@ public final class HealthSessionSync {
         Task { await perform(summary, record: record, buffer: buffer, store: store) }
     }
 
+    // MARK: - Editing
+
+    /// True while the session is being saved or re-saved to Health.
+    public func isBusy(_ record: TrainingSessionRecord) -> Bool {
+        inFlight.contains(record.id)
+    }
+
+    /// Changes a session's workout type. A session already in Health is
+    /// saved there again as the new type: its readings go back into the
+    /// buffer file first, so a failure midway leaves it pending, not lost.
+    public func changeKind(of record: TrainingSessionRecord, to kind: WorkoutKind, context: ModelContext) {
+        guard record.kindRaw != kind.rawValue, record.endedAt != nil, !inFlight.contains(record.id) else { return }
+        let store = SessionStore(context: context)
+        kindChangeErrors[record.id] = nil
+        guard record.healthKitWorkoutID != nil else {
+            // Not in Health yet: the next save picks up the new type.
+            store.setKind(kind, of: record)
+            return
+        }
+        inFlight.insert(record.id)
+        Task { await resave(record, as: kind, store: store) }
+    }
+
+    /// Caller must have marked `record` in flight.
+    private func resave(_ record: TrainingSessionRecord, as kind: WorkoutKind, store: SessionStore) async {
+        let id = record.id
+        let start = record.startedAt
+        let end = record.endedAt ?? start
+        let buffer = HRBufferFile(sessionID: id)
+        await health.requestAuthorization()
+        do {
+            if buffer.read().isEmpty {
+                let points = await health.heartRatePoints(from: start, to: end)
+                // Heart rate was recorded but can't be read back: keep the
+                // workout as it is rather than replace it without its readings.
+                if points.isEmpty, record.averageBPM != nil { throw EditError.readingsUnavailable }
+                try buffer.write(points.map { (start.addingTimeInterval($0.t), $0.bpm) })
+            }
+        } catch {
+            inFlight.remove(id)
+            kindChangeErrors[id] = Self.message(for: error)
+            return
+        }
+
+        let oldKind = WorkoutKind(rawValue: record.kindRaw)
+        store.setKind(kind, of: record)
+        store.markUnsaved(record)
+        do {
+            try await health.deleteSession(sessionID: id, from: start, to: end)
+        } catch {
+            print("HealthSessionSync: type change failed for \(id): \(error)")
+            kindChangeErrors[id] = Self.message(for: error)
+            // The old workout is still there: put the session back as it was.
+            if let oldKind, let existing = await health.savedWorkoutID(sessionID: id) {
+                store.setKind(oldKind, of: record)
+                if store.markSaved(record, workoutID: existing) { buffer.delete() }
+                inFlight.remove(id)
+                return
+            }
+        }
+        await saveFromBuffer(record, store: store, profile: await health.calorieProfile())
+    }
+
+    private enum EditError: LocalizedError {
+        case readingsUnavailable
+
+        var errorDescription: String? {
+            "flow couldn't read this session's heart rate back from Health, so its type wasn't changed."
+        }
+    }
+
     // MARK: - Saving
 
     /// Marks the session in flight; false if it needs no save or one is running.
@@ -156,7 +229,8 @@ public final class HealthSessionSync {
             if let existing = await health.savedWorkoutID(sessionID: id) {
                 workoutID = existing
             } else {
-                workoutID = try await health.save(summary, sessionID: id)
+                workoutID = try await health.save(summary, kind: WorkoutKind(rawValue: record.kindRaw) ?? summary.kind,
+                                                  sessionID: id)
             }
             guard store.markSaved(record, workoutID: workoutID) else { throw SyncError.notRecorded }
             setFailure(nil, for: id)

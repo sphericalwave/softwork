@@ -110,7 +110,7 @@ public struct TrainingSessionDetailView: View {
     public var body: some View {
         Group {
             if let summary {
-                SessionSummaryContent(summary: summary, kindLabel: record.kindLabel,
+                SessionSummaryContent(summary: summary, record: record,
                                       status: sync.status(of: record),
                                       bufferBytes: HRBufferFile(sessionID: record.id).byteCount,
                                       retry: { sync.retry(record, context: modelContext) })
