@@ -30,7 +30,6 @@ struct IntensityView: View {
     /// A duplicate waiting for delete confirmation.
     @State private var duplicateToDelete: WorkoutIntensity?
     @State private var deleteError: String?
-    @Environment(\.modelContext) private var modelContext
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
     private var sessionsByWorkoutID: [UUID: TrainingSessionRecord] {
