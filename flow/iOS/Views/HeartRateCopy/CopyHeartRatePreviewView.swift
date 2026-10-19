@@ -223,7 +223,7 @@ struct CopyHeartRatePreviewView: View {
 }
 
 /// Copied readings as a line, recorded ones as dots, over the target's length.
-private struct PreviewChart: View {
+struct PreviewChart: View {
     let preview: CopyHeartRateViewModel.Preview
     let duration: TimeInterval
 

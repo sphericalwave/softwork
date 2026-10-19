@@ -13,6 +13,7 @@ import Combine
 import SessionEngine
 import DiagnosticsKit
 import SwCharts
+import Persistence
 
 @MainActor
 final class DashboardViewModel: ObservableObject {
@@ -84,6 +85,27 @@ final class DashboardViewModel: ObservableObject {
                                              duration: workout.duration, title: title),
                                session: session,
                                service: HeartRateCopyService(store: health.store), titleFor: titleFor)
+    }
+
+    /// The sheet model for duplicating `workout` onto a day it wasn't recorded.
+    /// `session` is flow's session for it, if any; otherwise its tag sets the kind.
+    func duplicate(_ workout: WorkoutIntensity, session: TrainingSessionRecord?, tag: WorkoutTag?, title: String,
+                   titleFor: @escaping @MainActor (UUID, HKWorkoutActivityType) -> String) -> DuplicateWorkoutViewModel {
+        let kindRaw = session?.kindRaw ?? tag?.rawValue
+            ?? (workout.activityType == .kickboxing ? WorkoutKind.kickboxing : .wrestling).rawValue
+        let hrMax = session.map(\.hrMax).flatMap { $0 > 0 ? $0 : nil } ?? self.hrMax ?? 0
+        return DuplicateWorkoutViewModel(source: .init(id: workout.id, start: workout.start, duration: workout.duration,
+                                                       title: title, kindRaw: kindRaw, notes: session?.notes ?? "",
+                                                       hrMax: hrMax),
+                                         service: WorkoutDuplicateService(store: health.store),
+                                         heartRate: HeartRateCopyService(store: health.store), titleFor: titleFor)
+    }
+
+    /// Deletes a workout made with Duplicate To…, with its heart rate, energy and flow session.
+    func deleteDuplicate(_ workout: WorkoutIntensity, context: ModelContext) async throws {
+        try await DuplicateWorkoutViewModel.delete(workoutID: workout.id,
+                                                   service: WorkoutDuplicateService(store: health.store),
+                                                   context: context)
     }
 
     /// Seed tiles from the cached snapshot so the UI isn't empty on launch.

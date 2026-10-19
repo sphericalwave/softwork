@@ -22,6 +22,8 @@ struct WorkoutIntensity: Identifiable, Codable {
     /// Some of its heart rate was copied from another workout. Optional so
     /// intensities cached before this field still decode.
     var hasEstimatedHR: Bool? = nil
+    /// Made with Duplicate To… from this workout. Optional for old caches too.
+    var duplicatedFrom: UUID? = nil
 
     var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
@@ -61,7 +63,9 @@ final class WorkoutIntensityService {
                 duration: workout.duration,
                 zoneSeconds: zones,
                 avgPercentOfMax: avgPct,
-                hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil }
+                hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil },
+                duplicatedFrom: (workout.metadata?[WorkoutDuplicateService.duplicatedFromKey] as? String)
+                    .flatMap(UUID.init(uuidString:))
             ))
         }
         return out.sorted { $0.start > $1.start }

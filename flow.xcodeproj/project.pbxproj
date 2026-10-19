@@ -47,6 +47,9 @@
 				iOS/Health/HeartRateCSV.swift = (
 					ios,
 				);
+				iOS/Health/WorkoutDuplicateService.swift = (
+					ios,
+				);
 				iOS/Health/WorkoutIntensityService.swift = (
 					ios,
 				);
@@ -54,6 +57,9 @@
 					ios,
 				);
 				iOS/ViewModels/DashboardViewModel.swift = (
+					ios,
+				);
+				iOS/ViewModels/DuplicateWorkoutViewModel.swift = (
 					ios,
 				);
 				iOS/Views/HeartRateCopy/CopyHeartRatePreviewView.swift = (
@@ -78,6 +84,9 @@
 					ios,
 				);
 				iOS/Views/VideoSync/VideoSyncView.swift = (
+					ios,
+				);
+				iOS/Views/WorkoutDuplicate/DuplicateWorkoutView.swift = (
 					ios,
 				);
 				iOS/flowApp.swift = (
