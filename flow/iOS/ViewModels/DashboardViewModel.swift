@@ -77,6 +77,14 @@ final class DashboardViewModel: ObservableObject {
                             workoutName: name)
     }
 
+    /// The sheet model for filling in `workout`'s heart rate from a similar one.
+    func copyHeartRate(for workout: WorkoutIntensity, title: String,
+                       titleFor: @escaping @MainActor (UUID, HKWorkoutActivityType) -> String) -> CopyHeartRateViewModel {
+        CopyHeartRateViewModel(target: .init(id: workout.id, start: workout.start,
+                                             duration: workout.duration, title: title),
+                               service: HeartRateCopyService(store: health.store), titleFor: titleFor)
+    }
+
     /// Seed tiles from the cached snapshot so the UI isn't empty on launch.
     func primeFromCache(_ snapshot: MetricSnapshot?) {
         guard let snapshot else { return }

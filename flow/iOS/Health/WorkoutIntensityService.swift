@@ -19,6 +19,9 @@ struct WorkoutIntensity: Identifiable, Codable {
     let duration: TimeInterval
     let zoneSeconds: [HRZone: TimeInterval]
     let avgPercentOfMax: Double?
+    /// Some of its heart rate was copied from another workout. Optional so
+    /// intensities cached before this field still decode.
+    var hasEstimatedHR: Bool? = nil
 
     var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
@@ -57,7 +60,8 @@ final class WorkoutIntensityService {
                 activityTypeRaw: workout.workoutActivityType.rawValue,
                 duration: workout.duration,
                 zoneSeconds: zones,
-                avgPercentOfMax: avgPct
+                avgPercentOfMax: avgPct,
+                hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil }
             ))
         }
         return out.sorted { $0.start > $1.start }
