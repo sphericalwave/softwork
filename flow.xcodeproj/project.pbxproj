@@ -41,13 +41,25 @@
 				iOS/Health/HealthKitService.swift = (
 					ios,
 				);
+				iOS/Health/HeartRateCopyService.swift = (
+					ios,
+				);
 				iOS/Health/HeartRateCSV.swift = (
 					ios,
 				);
 				iOS/Health/WorkoutIntensityService.swift = (
 					ios,
 				);
+				iOS/ViewModels/CopyHeartRateViewModel.swift = (
+					ios,
+				);
 				iOS/ViewModels/DashboardViewModel.swift = (
+					ios,
+				);
+				iOS/Views/HeartRateCopy/CopyHeartRatePreviewView.swift = (
+					ios,
+				);
+				iOS/Views/HeartRateCopy/CopyHeartRateView.swift = (
 					ios,
 				);
 				iOS/Views/Intensity/IntensityView.swift = (

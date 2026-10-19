@@ -22,6 +22,8 @@ struct IntensityView: View {
     @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil })
     private var endedSessions: [TrainingSessionRecord]
     @State private var tags = WorkoutTags()
+    /// The workout whose heart rate is being filled in from another.
+    @State private var copyTarget: WorkoutIntensity?
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
     private var sessionsByWorkoutID: [UUID: TrainingSessionRecord] {
@@ -75,13 +77,17 @@ struct IntensityView: View {
                                     TrainingSessionDetailView(record: session)
                                         .toolbar {
                                             ToolbarItem(placement: .topBarTrailing) { exportButton(workout, name: session.kindLabel) }
+                                            ToolbarItem(placement: .topBarTrailing) { copyButton(workout) }
                                         }
                                 } label: {
                                     WorkoutIntensityRow(intensity: workout, title: session.kindLabel,
                                                         accessory: "chevron.right")
                                 }
                                 .buttonStyle(.plain)
-                                .contextMenu { exportButton(workout, name: session.kindLabel) }
+                                .contextMenu {
+                                    exportButton(workout, name: session.kindLabel)
+                                    copyButton(workout)
+                                }
                             } else {
                                 taggableRow(workout)
                             }
@@ -98,7 +104,20 @@ struct IntensityView: View {
                 }
             }
             .refreshable { await refresh() }
+            .sheet(item: $copyTarget) { workout in
+                CopyHeartRateView(viewModel: viewModel.copyHeartRate(for: workout,
+                                                                     title: title(for: workout.id, type: workout.activityType),
+                                                                     titleFor: title(for:type:)),
+                                  onClose: { changed in
+                                      if changed { Task { await refresh() } }
+                                  })
+            }
         }
+    }
+
+    /// The name a workout's card shows: flow's session kind, the user's tag, or Health's activity type.
+    private func title(for workoutID: UUID, type: HKWorkoutActivityType) -> String {
+        sessionsByWorkoutID[workoutID]?.kindLabel ?? tags.tag(for: workoutID)?.label ?? type.name
     }
 
     /// A workout flow didn't record: tap to tag what it really was.
@@ -115,6 +134,7 @@ struct IntensityView: View {
                 Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
             }
             exportButton(workout, name: tag?.label ?? workout.activityType.name)
+            copyButton(workout)
         } label: {
             WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
@@ -129,6 +149,16 @@ struct IntensityView: View {
             ShareLink(item: csv, preview: SharePreview(csv.filename)) {
                 Label("Export Heart Rate", systemImage: "square.and.arrow.up")
             }
+        }
+    }
+
+    /// For a workout whose strap failed: borrow a similar workout's heart rate.
+    private func copyButton(_ workout: WorkoutIntensity) -> some View {
+        Button {
+            copyTarget = workout
+        } label: {
+            Label(workout.hasEstimatedHR == true ? "Copied Heart Rate…" : "Copy Heart Rate From…",
+                  systemImage: "waveform.path.ecg")
         }
     }
 
@@ -169,6 +199,10 @@ struct WorkoutIntensityRow: View {
             HStack {
                 Text("\(Int(intensity.duration / 60)) min")
                 Spacer()
+                if intensity.hasEstimatedHR == true {
+                    Label("Estimated", systemImage: "waveform.path.ecg")
+                        .accessibilityLabel("Heart rate partly estimated")
+                }
                 if let pct = intensity.avgPercentOfMax {
                     Text("avg \(Int(pct.rounded()))% HRmax")
                 }
