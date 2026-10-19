@@ -27,8 +27,8 @@ struct IntensityView: View {
     @State private var copyTarget: WorkoutIntensity?
     /// The workout being duplicated onto a day it wasn't recorded.
     @State private var duplicateSource: WorkoutIntensity?
-    /// A duplicate waiting for delete confirmation.
-    @State private var duplicateToDelete: WorkoutIntensity?
+    /// A flow session waiting for delete confirmation.
+    @State private var sessionToDelete: TrainingSessionRecord?
     @State private var deleteError: String?
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
@@ -94,7 +94,12 @@ struct IntensityView: View {
                                 .contextMenu {
                                     exportButton(workout, name: session.kindLabel)
                                     copyButton(workout)
-                                    duplicateButtons(workout)
+                                    duplicateButton(workout)
+                                    Button(role: .destructive) {
+                                        sessionToDelete = session
+                                    } label: {
+                                        Label("Delete Workout", systemImage: "trash")
+                                    }
                                 }
                             } else {
                                 taggableRow(workout)
@@ -132,13 +137,13 @@ struct IntensityView: View {
                                          if changed { Task { await refresh() } }
                                      })
             }
-            .confirmationDialog("Delete duplicated workout?",
-                                isPresented: Binding(get: { duplicateToDelete != nil },
-                                                     set: { if !$0 { duplicateToDelete = nil } }),
-                                titleVisibility: .visible, presenting: duplicateToDelete) { workout in
-                Button("Delete Workout", role: .destructive) { Task { await deleteDuplicate(workout) } }
-            } message: { workout in
-                Text("Removes the \(workout.start.formatted(date: .abbreviated, time: .shortened)) workout from Health, with its copied heart rate and energy, and its flow session.")
+            .confirmationDialog("Delete workout?",
+                                isPresented: Binding(get: { sessionToDelete != nil },
+                                                     set: { if !$0 { sessionToDelete = nil } }),
+                                titleVisibility: .visible, presenting: sessionToDelete) { session in
+                Button("Delete Workout", role: .destructive) { Task { await delete(session) } }
+            } message: { session in
+                Text("Removes the \(session.kindLabel) workout on \(session.startedAt.formatted(date: .abbreviated, time: .shortened)) from Health, with the heart rate and energy flow saved for it, and from flow. This can't be undone.")
             }
             .alert("Couldn't delete the workout", isPresented: Binding(get: { deleteError != nil },
                                                                       set: { if !$0 { deleteError = nil } })) {
@@ -169,7 +174,7 @@ struct IntensityView: View {
             }
             exportButton(workout, name: tag?.label ?? workout.activityType.name)
             copyButton(workout)
-            duplicateButtons(workout)
+            duplicateButton(workout)
         } label: {
             WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
@@ -206,22 +211,9 @@ struct IntensityView: View {
         }
     }
 
-    /// Duplicate To…, plus Delete for a workout that is itself a duplicate.
-    @ViewBuilder
-    private func duplicateButtons(_ workout: WorkoutIntensity) -> some View {
-        duplicateButton(workout)
-        if workout.duplicatedFrom != nil {
-            Button(role: .destructive) {
-                duplicateToDelete = workout
-            } label: {
-                Label("Delete Duplicated Workout", systemImage: "trash")
-            }
-        }
-    }
-
-    private func deleteDuplicate(_ workout: WorkoutIntensity) async {
+    private func delete(_ session: TrainingSessionRecord) async {
         do {
-            try await viewModel.deleteDuplicate(workout, context: modelContext)
+            try await viewModel.delete(session, context: modelContext)
         } catch {
             deleteError = error.localizedDescription
         }

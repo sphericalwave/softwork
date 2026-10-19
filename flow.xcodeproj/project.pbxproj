@@ -47,6 +47,9 @@
 				iOS/Health/HeartRateCSV.swift = (
 					ios,
 				);
+				iOS/Health/WorkoutDeletionService.swift = (
+					ios,
+				);
 				iOS/Health/WorkoutDuplicateService.swift = (
 					ios,
 				);
