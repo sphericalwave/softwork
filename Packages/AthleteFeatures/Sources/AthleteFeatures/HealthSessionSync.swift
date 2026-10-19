@@ -208,7 +208,7 @@ public final class HealthSessionSync {
     func refreshHeartRateStatsIfCopied(of record: TrainingSessionRecord, store: SessionStore) async {
         guard record.healthKitWorkoutID != nil, let end = record.endedAt,
               await health.hasCopiedHeartRate(from: record.startedAt, to: end) else { return }
-        await refreshHeartRateStats(of: record, store: store)
+        await refreshHeartRateStats(of: record, store: store, restoring: nil)
     }
 
     private func refreshHeartRateStats(of record: TrainingSessionRecord, store: SessionStore,
