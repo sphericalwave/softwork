@@ -101,11 +101,9 @@ final class DashboardViewModel: ObservableObject {
                                          heartRate: HeartRateCopyService(store: health.store), titleFor: titleFor)
     }
 
-    /// Deletes a workout made with Duplicate To…, with its heart rate, energy and flow session.
-    func deleteDuplicate(_ workout: WorkoutIntensity, context: ModelContext) async throws {
-        try await DuplicateWorkoutViewModel.delete(workoutID: workout.id,
-                                                   service: WorkoutDuplicateService(store: health.store),
-                                                   context: context)
+    /// Deletes a flow session and its workout, heart rate and energy from Health.
+    func delete(_ session: TrainingSessionRecord, context: ModelContext) async throws {
+        try await WorkoutDeletionService(store: health.store).delete(session, context: context)
     }
 
     /// Seed tiles from the cached snapshot so the UI isn't empty on launch.

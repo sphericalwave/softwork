@@ -186,7 +186,7 @@ struct DuplicateWorkoutView: View {
                 if created.readings > 0 {
                     Text("\(created.readings.formatted()) heart-rate readings marked as estimated.")
                 }
-                Text("It shows in Intensity labelled Estimated. To remove it later, long-press its card › Delete Duplicated Workout.")
+                Text("It shows in Intensity labelled Estimated. To remove it later, long-press its card › Delete Workout.")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
