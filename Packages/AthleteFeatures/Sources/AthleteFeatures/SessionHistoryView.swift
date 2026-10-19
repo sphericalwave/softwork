@@ -122,7 +122,9 @@ public struct TrainingSessionDetailView: View {
         .navigationTitle(record.kindLabel)
         .brandedToolbars()
         .task {
-            summary = await sync.summary(of: record, store: SessionStore(context: modelContext))
+            let store = SessionStore(context: modelContext)
+            summary = await sync.summary(of: record, store: store)
+            await sync.refreshHeartRateStatsIfCopied(of: record, store: store)
         }
     }
 }

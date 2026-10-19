@@ -55,4 +55,42 @@ public enum HeartRateCopy {
         guard sameKind, sourceDuration > 0, targetDuration > 0 else { return false }
         return (0.5...2).contains(sourceDuration / targetDuration)
     }
+
+    /// HealthKit metadata on copied readings. Bool: the reading is an estimate.
+    public static let estimatedMetadataKey = "FlowEstimatedHeartRate"
+    /// HealthKit metadata on copied readings: the copy's batch UUID string.
+    public static let batchMetadataKey = "FlowCopyBatch"
+
+    /// A session's heart-rate numbers once a copy is undone. With no copy
+    /// left in the window, the numbers it had before the copy are the most
+    /// faithful (they came from the strap's own buffer); otherwise they're
+    /// recomputed from the readings that remain. nil: leave them as stored.
+    public static func statsAfterUndo(remaining: [HRPoint], rounds: [SparringRound],
+                                      original: HeartRateStats?, copiesRemain: Bool) -> HeartRateStats? {
+        if !copiesRemain, let original { return original }
+        return HeartRateStats(points: remaining, rounds: rounds)
+    }
+}
+
+/// The heart-rate numbers a session stores in its summary.
+public struct HeartRateStats: Sendable, Equatable, Codable {
+    public let averageBPM: Int?
+    public let maxBPM: Int?
+    public let secondsOverCeiling: TimeInterval
+
+    public init(averageBPM: Int?, maxBPM: Int?, secondsOverCeiling: TimeInterval) {
+        self.averageBPM = averageBPM
+        self.maxBPM = maxBPM
+        self.secondsOverCeiling = secondsOverCeiling
+    }
+
+    /// Computed as at End. nil without readings, so a failed or empty
+    /// Health read never wipes a session's stored numbers.
+    public init?(points: [HRPoint], rounds: [SparringRound]) {
+        guard !points.isEmpty else { return nil }
+        let summary = TrainingSummary(startedAt: .distantPast, duration: 0, kind: .wrestling, hrMax: 0,
+                                      points: points.sorted { $0.t < $1.t }, rounds: rounds, profile: nil)
+        self.init(averageBPM: summary.averageBPM, maxBPM: summary.maxBPM,
+                  secondsOverCeiling: summary.secondsOverCeiling)
+    }
 }

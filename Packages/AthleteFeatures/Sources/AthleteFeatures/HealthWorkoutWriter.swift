@@ -92,6 +92,19 @@ final class HealthWorkoutWriter {
         return try? await descriptor.result(for: store).first?.uuid
     }
 
+    /// True if heart rate copied from another workout lies between `start` and `end`.
+    func hasCopiedHeartRate(from start: Date, to end: Date) async -> Bool {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate),
+            HKQuery.predicateForObjects(withMetadataKey: HeartRateCopy.batchMetadataKey),
+        ])
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: heartRate, predicate: predicate)],
+            sortDescriptors: [], limit: 1
+        )
+        return !((try? await descriptor.result(for: store)) ?? []).isEmpty
+    }
+
     /// Heart rate flow itself saved between `start` and `end`: a past
     /// session's readings, once its buffer file is gone.
     func heartRatePoints(from start: Date, to end: Date) async -> [HRPoint] {

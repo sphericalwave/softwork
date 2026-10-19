@@ -21,6 +21,7 @@ struct IntensityView: View {
 
     @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil })
     private var endedSessions: [TrainingSessionRecord]
+    @Environment(\.modelContext) private var modelContext
     @State private var tags = WorkoutTags()
     /// The workout whose heart rate is being filled in from another.
     @State private var copyTarget: WorkoutIntensity?
@@ -107,6 +108,9 @@ struct IntensityView: View {
             .sheet(item: $copyTarget) { workout in
                 CopyHeartRateView(viewModel: viewModel.copyHeartRate(for: workout,
                                                                      title: title(for: workout.id, type: workout.activityType),
+                                                                     session: session(for: workout).map {
+                                                                         CopyHeartRateViewModel.LinkedSession(record: $0, context: modelContext)
+                                                                     },
                                                                      titleFor: title(for:type:)),
                                   onClose: { changed in
                                       if changed { Task { await refresh() } }
