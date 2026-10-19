@@ -24,6 +24,12 @@ struct IntensityView: View {
     @State private var tags = WorkoutTags()
     /// The workout whose heart rate is being filled in from another.
     @State private var copyTarget: WorkoutIntensity?
+    /// The workout being duplicated onto a day it wasn't recorded.
+    @State private var duplicateSource: WorkoutIntensity?
+    /// A duplicate waiting for delete confirmation.
+    @State private var duplicateToDelete: WorkoutIntensity?
+    @State private var deleteError: String?
+    @Environment(\.modelContext) private var modelContext
 
     /// flow's own training sessions, keyed by the Health workout they saved as.
     private var sessionsByWorkoutID: [UUID: TrainingSessionRecord] {
@@ -78,6 +84,7 @@ struct IntensityView: View {
                                         .toolbar {
                                             ToolbarItem(placement: .topBarTrailing) { exportButton(workout, name: session.kindLabel) }
                                             ToolbarItem(placement: .topBarTrailing) { copyButton(workout) }
+                                            ToolbarItem(placement: .topBarTrailing) { duplicateButton(workout) }
                                         }
                                 } label: {
                                     WorkoutIntensityRow(intensity: workout, title: session.kindLabel,
@@ -87,6 +94,7 @@ struct IntensityView: View {
                                 .contextMenu {
                                     exportButton(workout, name: session.kindLabel)
                                     copyButton(workout)
+                                    duplicateButtons(workout)
                                 }
                             } else {
                                 taggableRow(workout)
@@ -112,6 +120,29 @@ struct IntensityView: View {
                                       if changed { Task { await refresh() } }
                                   })
             }
+            .sheet(item: $duplicateSource) { workout in
+                DuplicateWorkoutView(viewModel: viewModel.duplicate(workout, session: session(for: workout),
+                                                                    tag: tags.tag(for: workout.id),
+                                                                    title: title(for: workout.id, type: workout.activityType),
+                                                                    titleFor: title(for:type:)),
+                                     onClose: { changed in
+                                         if changed { Task { await refresh() } }
+                                     })
+            }
+            .confirmationDialog("Delete duplicated workout?",
+                                isPresented: Binding(get: { duplicateToDelete != nil },
+                                                     set: { if !$0 { duplicateToDelete = nil } }),
+                                titleVisibility: .visible, presenting: duplicateToDelete) { workout in
+                Button("Delete Workout", role: .destructive) { Task { await deleteDuplicate(workout) } }
+            } message: { workout in
+                Text("Removes the \(workout.start.formatted(date: .abbreviated, time: .shortened)) workout from Health, with its copied heart rate and energy, and its flow session.")
+            }
+            .alert("Couldn't delete the workout", isPresented: Binding(get: { deleteError != nil },
+                                                                      set: { if !$0 { deleteError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteError ?? "")
+            }
         }
     }
 
@@ -135,6 +166,7 @@ struct IntensityView: View {
             }
             exportButton(workout, name: tag?.label ?? workout.activityType.name)
             copyButton(workout)
+            duplicateButtons(workout)
         } label: {
             WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
@@ -160,6 +192,37 @@ struct IntensityView: View {
             Label(workout.hasEstimatedHR == true ? "Copied Heart Rate…" : "Copy Heart Rate From…",
                   systemImage: "waveform.path.ecg")
         }
+    }
+
+    /// For a session trained but never recorded: copy this workout onto that day.
+    private func duplicateButton(_ workout: WorkoutIntensity) -> some View {
+        Button {
+            duplicateSource = workout
+        } label: {
+            Label("Duplicate To…", systemImage: "plus.square.on.square")
+        }
+    }
+
+    /// Duplicate To…, plus Delete for a workout that is itself a duplicate.
+    @ViewBuilder
+    private func duplicateButtons(_ workout: WorkoutIntensity) -> some View {
+        duplicateButton(workout)
+        if workout.duplicatedFrom != nil {
+            Button(role: .destructive) {
+                duplicateToDelete = workout
+            } label: {
+                Label("Delete Duplicated Workout", systemImage: "trash")
+            }
+        }
+    }
+
+    private func deleteDuplicate(_ workout: WorkoutIntensity) async {
+        do {
+            try await viewModel.deleteDuplicate(workout, context: modelContext)
+        } catch {
+            deleteError = error.localizedDescription
+        }
+        await refresh()
     }
 
     private var aggregateCard: some View {
@@ -199,7 +262,7 @@ struct WorkoutIntensityRow: View {
             HStack {
                 Text("\(Int(intensity.duration / 60)) min")
                 Spacer()
-                if intensity.hasEstimatedHR == true {
+                if intensity.hasEstimatedHR == true || intensity.duplicatedFrom != nil {
                     Label("Estimated", systemImage: "waveform.path.ecg")
                         .accessibilityLabel("Heart rate partly estimated")
                 }
