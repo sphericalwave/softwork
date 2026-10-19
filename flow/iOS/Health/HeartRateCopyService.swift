@@ -41,11 +41,11 @@ nonisolated struct TargetHeartRate: Sendable {
 final class HeartRateCopyService {
 
     /// Metadata on copied samples. Bool: the reading is an estimate.
-    nonisolated static let estimatedKey = "FlowEstimatedHeartRate"
+    nonisolated static let estimatedKey = HeartRateCopy.estimatedMetadataKey
     /// Metadata on copied samples: the source workout's UUID string.
     nonisolated static let sourceKey = "FlowCopiedFromWorkout"
     /// Metadata on copied samples: the copy's batch UUID string, for undo.
-    nonisolated static let batchKey = "FlowCopyBatch"
+    nonisolated static let batchKey = HeartRateCopy.batchMetadataKey
 
     /// How far back to look for sources.
     static let lookbackDays = 365
@@ -127,9 +127,11 @@ final class HeartRateCopyService {
 
     /// Writes `points` (seconds from `targetStart`) as estimated readings.
     /// With `replacingOwn`, flow's own real readings in the window are
-    /// backed up, then deleted once the copy is safely saved.
+    /// backed up, then deleted once the copy is safely saved. `sessionStats`
+    /// (the flow session's stored numbers, if the target is one) is backed up
+    /// with them so undo can put them back.
     func copy(_ points: [HRPoint], targetID: UUID, targetStart: Date, targetDuration: TimeInterval,
-              sourceID: UUID, replacingOwn: Bool) async throws -> Applied {
+              sourceID: UUID, replacingOwn: Bool, sessionStats: HeartRateStats?) async throws -> Applied {
         guard !points.isEmpty else { throw CopyError.nothingToCopy }
         guard store.authorizationStatus(for: heartRate) == .sharingAuthorized else { throw CopyError.notAllowed }
 
@@ -142,7 +144,8 @@ final class HeartRateCopyService {
                                          replaced: toReplace.map {
                                              .init(date: $0.startDate, endDate: $0.endDate,
                                                    bpm: $0.quantity.doubleValue(for: bpmUnit))
-                                         })
+                                         },
+                                         sessionStats: sessionStats)
         try backup.write()
 
         let metadata: [String: Any] = [
@@ -177,14 +180,16 @@ final class HeartRateCopyService {
 
     // MARK: - Undo
 
-    /// Removes the copy and writes back the readings it replaced.
-    func undo(batch: UUID) async throws {
+    /// Removes the copy and writes back the readings it replaced. Returns the
+    /// session numbers backed up with it, if any.
+    @discardableResult
+    func undo(batch: UUID) async throws -> HeartRateStats? {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForObjects(withMetadataKey: Self.batchKey, allowedValues: [batch.uuidString]),
             HKQuery.predicateForObjects(from: HKSource.default()),
         ])
         try await deleteHeartRate(matching: predicate)
-        guard let backup = HeartRateCopyBackup.read(batch: batch) else { return }
+        guard let backup = HeartRateCopyBackup.read(batch: batch) else { return nil }
         // Only readings no longer in Health: a replace that failed part way may have left some.
         var restored: [HKQuantitySample] = []
         if let first = backup.replaced.map(\.date).min(), let last = backup.replaced.map(\.endDate).max() {
@@ -199,16 +204,21 @@ final class HeartRateCopyService {
             try await store.save(restored)
         }
         backup.remove()
+        return backup.sessionStats
     }
 
-    /// Undoes every copy that wrote into the workout's window.
-    func removeCopies(start: Date, duration: TimeInterval) async throws {
+    /// Undoes every copy that wrote into the workout's window. Returns the
+    /// session numbers from before the copy when there was exactly one; with
+    /// several it can't tell which came first.
+    func removeCopies(start: Date, duration: TimeInterval) async throws -> HeartRateStats? {
         let batches = Set(try await samples(start: start, duration: duration).compactMap {
             ($0.metadata?[Self.batchKey] as? String).flatMap(UUID.init(uuidString:))
         })
+        var originals: [HeartRateStats?] = []
         for batch in batches {
-            try await undo(batch: batch)
+            originals.append(try await undo(batch: batch))
         }
+        return originals.count == 1 ? originals[0] : nil
     }
 
     // MARK: - Internals
@@ -265,6 +275,9 @@ struct HeartRateCopyBackup: Codable {
     let targetWorkoutID: UUID
     let sourceWorkoutID: UUID
     let replaced: [Reading]
+    /// The flow session's stored heart-rate numbers before the copy. Optional
+    /// so backups written before this field still decode.
+    var sessionStats: HeartRateStats? = nil
 
     private static var directory: URL {
         URL.applicationSupportDirectory.appending(path: "HeartRateCopies", directoryHint: .isDirectory)

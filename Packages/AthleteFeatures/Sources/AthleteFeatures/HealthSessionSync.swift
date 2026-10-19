@@ -187,6 +187,43 @@ public final class HealthSessionSync {
         await saveFromBuffer(record, store: store, profile: await health.calorieProfile())
     }
 
+    // MARK: - Copied heart rate
+
+    /// The session's stored heart-rate numbers, backed up before a copy changes them.
+    public func heartRateStats(of record: TrainingSessionRecord, context: ModelContext) -> HeartRateStats {
+        SessionStore(context: context).heartRateStats(of: record)
+    }
+
+    /// Brings the session's stored heart-rate numbers in line with Health
+    /// after heart rate was copied in or removed. `original` is what they
+    /// were before an undone copy; it comes back when no copy is left.
+    /// Without readings to go on, the numbers stay as they are.
+    public func refreshHeartRateStats(of record: TrainingSessionRecord, context: ModelContext,
+                                      restoring original: HeartRateStats? = nil) async {
+        await refreshHeartRateStats(of: record, store: SessionStore(context: context), restoring: original)
+    }
+
+    /// For a session copied into by a build whose copy didn't update its
+    /// numbers: fixes them the next time it's opened.
+    func refreshHeartRateStatsIfCopied(of record: TrainingSessionRecord, store: SessionStore) async {
+        guard record.healthKitWorkoutID != nil, let end = record.endedAt,
+              await health.hasCopiedHeartRate(from: record.startedAt, to: end) else { return }
+        await refreshHeartRateStats(of: record, store: store)
+    }
+
+    private func refreshHeartRateStats(of record: TrainingSessionRecord, store: SessionStore,
+                                       restoring original: HeartRateStats?) async {
+        // Not in Health, or being re-saved: Health isn't where its readings are.
+        guard record.healthKitWorkoutID != nil, let end = record.endedAt, !inFlight.contains(record.id) else { return }
+        let start = record.startedAt
+        let remaining = await health.heartRatePoints(from: start, to: end)
+        let copiesRemain = await health.hasCopiedHeartRate(from: start, to: end)
+        guard let stats = HeartRateCopy.statsAfterUndo(remaining: remaining, rounds: store.rounds(for: record.id),
+                                                       original: original, copiesRemain: copiesRemain),
+              !record.isDeleted else { return }
+        store.setHeartRateStats(stats, of: record)
+    }
+
     private enum EditError: LocalizedError {
         case readingsUnavailable
 

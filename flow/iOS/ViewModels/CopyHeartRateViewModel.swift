@@ -11,6 +11,9 @@
 import Foundation
 import HealthKit
 import Observation
+import SwiftData
+import Persistence
+import AthleteFeatures
 import SessionEngine
 
 @MainActor
@@ -22,6 +25,13 @@ final class CopyHeartRateViewModel {
         let start: Date
         let duration: TimeInterval
         let title: String
+    }
+
+    /// The flow session saved as the target workout. Its stored average,
+    /// max and time over ceiling follow the copy, its undo and its removal.
+    struct LinkedSession {
+        let record: TrainingSessionRecord
+        let context: ModelContext
     }
 
     struct Candidate: Identifiable {
@@ -56,6 +66,7 @@ final class CopyHeartRateViewModel {
     private static let suggestionCount = 5
 
     let target: Target
+    private let session: LinkedSession?
     private let service: HeartRateCopyService
     private let titleFor: @MainActor (UUID, HKWorkoutActivityType) -> String
 
@@ -71,9 +82,10 @@ final class CopyHeartRateViewModel {
 
     private var sourceReadings: [UUID: [HRPoint]] = [:]
 
-    init(target: Target, service: HeartRateCopyService,
+    init(target: Target, session: LinkedSession?, service: HeartRateCopyService,
          titleFor: @escaping @MainActor (UUID, HKWorkoutActivityType) -> String) {
         self.target = target
+        self.session = session
         self.service = service
         self.titleFor = titleFor
     }
@@ -165,28 +177,46 @@ final class CopyHeartRateViewModel {
     }
 
     func copy(_ preview: Preview, from candidate: Candidate) async throws -> HeartRateCopyService.Applied {
+        let sessionStats = session.map { HealthSessionSync.shared.heartRateStats(of: $0.record, context: $0.context) }
         let applied = try await service.copy(preview.copied, targetID: target.id, targetStart: target.start,
                                              targetDuration: target.duration, sourceID: candidate.id,
-                                             replacingOwn: preview.replacedCount > 0)
+                                             replacingOwn: preview.replacedCount > 0, sessionStats: sessionStats)
         didChange = true
+        await refreshSessionStats()
         return applied
     }
 
     func undo(_ applied: HeartRateCopyService.Applied) async throws {
-        try await service.undo(batch: applied.batch)
-        didChange = true
+        do {
+            let original = try await service.undo(batch: applied.batch)
+            didChange = true
+            await refreshSessionStats(restoring: original)
+        } catch {
+            // Part undone: match whatever Health now holds.
+            await refreshSessionStats()
+            throw error
+        }
     }
 
     /// Removes an earlier copy so the workout can take a new one.
     func removeEarlierCopies() async {
         var failure: String?
         do {
-            try await service.removeCopies(start: target.start, duration: target.duration)
+            let original = try await service.removeCopies(start: target.start, duration: target.duration)
             didChange = true
+            await refreshSessionStats(restoring: original)
         } catch {
             failure = error.localizedDescription
+            await refreshSessionStats()
         }
         await load()
         errorMessage = failure ?? errorMessage
+    }
+
+    /// Recomputes the linked session's stored heart-rate numbers from Health.
+    private func refreshSessionStats(restoring original: HeartRateStats? = nil) async {
+        guard let session else { return }
+        await HealthSessionSync.shared.refreshHeartRateStats(of: session.record, context: session.context,
+                                                             restoring: original)
     }
 }

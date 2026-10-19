@@ -78,10 +78,11 @@ final class DashboardViewModel: ObservableObject {
     }
 
     /// The sheet model for filling in `workout`'s heart rate from a similar one.
-    func copyHeartRate(for workout: WorkoutIntensity, title: String,
+    func copyHeartRate(for workout: WorkoutIntensity, title: String, session: CopyHeartRateViewModel.LinkedSession?,
                        titleFor: @escaping @MainActor (UUID, HKWorkoutActivityType) -> String) -> CopyHeartRateViewModel {
         CopyHeartRateViewModel(target: .init(id: workout.id, start: workout.start,
                                              duration: workout.duration, title: title),
+                               session: session,
                                service: HeartRateCopyService(store: health.store), titleFor: titleFor)
     }
 

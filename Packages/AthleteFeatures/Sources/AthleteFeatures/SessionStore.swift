@@ -75,6 +75,20 @@ final class SessionStore {
         save()
     }
 
+    func heartRateStats(of record: TrainingSessionRecord) -> HeartRateStats {
+        HeartRateStats(averageBPM: record.averageBPM, maxBPM: record.maxBPM,
+                       secondsOverCeiling: record.secondsOverCeiling)
+    }
+
+    /// After heart rate was copied in or removed. Unchanged numbers aren't re-saved.
+    func setHeartRateStats(_ stats: HeartRateStats, of record: TrainingSessionRecord) {
+        guard stats != heartRateStats(of: record) else { return }
+        record.averageBPM = stats.averageBPM
+        record.maxBPM = stats.maxBPM
+        record.secondsOverCeiling = stats.secondsOverCeiling
+        save()
+    }
+
     func setKind(_ kind: WorkoutKind, of record: TrainingSessionRecord) {
         record.kindRaw = kind.rawValue
         save()
