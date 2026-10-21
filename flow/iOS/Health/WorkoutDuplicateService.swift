@@ -72,7 +72,7 @@ final class WorkoutDuplicateService {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: start.addingTimeInterval(duration))
         let descriptor = HKSampleQueryDescriptor(predicates: [.workout(predicate)],
                                                  sortDescriptors: [SortDescriptor(\.startDate)])
-        let found = try await descriptor.result(for: store)
+        let found = try await descriptor.result(for: store).withoutBioMechanicShadows()
         let overlapping = WorkoutDuplicate.overlapping(start: start, duration: duration,
                                                        existing: found.map { DateInterval(start: $0.startDate, end: $0.endDate) })
         return overlapping.map { found[$0] }.map {

@@ -43,7 +43,7 @@ final class WorkoutIntensityService {
     func recentIntensities(in window: DashboardViewModel.TimeWindow, hrMax: Int) async throws -> [WorkoutIntensity] {
         let (start, end) = window.dates
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        let workouts = try await workouts(predicate: predicate)
+        let workouts = try await workouts(predicate: predicate).withoutBioMechanicShadows()
 
         var out: [WorkoutIntensity] = []
         for workout in workouts {
