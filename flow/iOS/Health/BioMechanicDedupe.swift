@@ -15,7 +15,7 @@ extension Array where Element == HKWorkout {
     func withoutBioMechanicShadows() -> [HKWorkout] {
         let flowBundle = HKSource.default().bundleIdentifier
         let entries = map { workout in
-            (interval: DateInterval(start: workout.startDate, end: max(workout.startDate, workout.endDate)),
+            (interval: DateInterval(start: workout.startDate, end: Swift.max(workout.startDate, workout.endDate)),
              origin: WorkoutDedupe.origin(bundleID: workout.sourceRevision.source.bundleIdentifier,
                                           sourceApp: workout.metadata?[WorkoutDedupe.sourceAppKey] as? String,
                                           flowBundleID: flowBundle))
