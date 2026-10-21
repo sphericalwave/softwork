@@ -38,6 +38,9 @@
 				Info.plist,
 			);
 			platformFiltersByRelativePath = {
+				iOS/Health/BioMechanicDedupe.swift = (
+					ios,
+				);
 				iOS/Health/HealthKitService.swift = (
 					ios,
 				);

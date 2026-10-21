@@ -88,6 +88,7 @@ final class HeartRateCopyService {
         let descriptor = HKSampleQueryDescriptor(predicates: [.workout(predicate)],
                                                  sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)])
         return try await descriptor.result(for: store)
+            .withoutBioMechanicShadows()
             .filter { $0.uuid != targetID && $0.duration > 0 }
             .map { HeartRateCopySource(id: $0.uuid, start: $0.startDate, duration: $0.duration,
                                        activityTypeRaw: $0.workoutActivityType.rawValue) }
