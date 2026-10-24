@@ -13,11 +13,14 @@ struct OverviewView: View {
     @ObservedObject var viewModel: DashboardViewModel
     @AppStorage("overviewChartPeriod") private var period: ChartPeriod = .week
     let refresh: () async -> Void
+    let openSpar: () -> Void
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    PendingSessionsBanner(openSpar: openSpar)
+
                     tiles
 
                     PeriodChartView(title: "HRV",

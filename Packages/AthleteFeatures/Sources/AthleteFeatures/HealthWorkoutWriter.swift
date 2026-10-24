@@ -166,6 +166,9 @@ final class HealthWorkoutWriter {
         }
         _ = try await builder.addMetadata([
             HKMetadataKeyIndoorWorkout: true,
+            // Health has no jiu-jitsu type: Jiu-Jitsu is saved as Martial
+            // Arts and named here, for apps that read the brand name.
+            HKMetadataKeyWorkoutBrandName: kind.label,
             HKMetadataKeySyncIdentifier: sessionID.uuidString,
             HKMetadataKeySyncVersion: 1,
         ])
@@ -223,6 +226,7 @@ final class HealthWorkoutWriter {
 extension WorkoutKind {
     var activityType: HKWorkoutActivityType {
         switch self {
+        case .jiujitsu: return .martialArts
         case .wrestling: return .wrestling
         case .kickboxing: return .kickboxing
         }

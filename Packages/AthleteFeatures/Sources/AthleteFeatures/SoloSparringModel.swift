@@ -12,6 +12,11 @@
 //  so an app kill loses nothing. At End the workout goes to HealthKit via
 //  HealthSessionSync; the buffer is deleted only once that succeeds.
 //
+//  The app owns one model from launch (`make` + `launch()`), not the Spar
+//  screen: when iOS relaunches the app in the background for the strap
+//  (Bluetooth state restoration), no screen appears, but the open session
+//  must resume and keep recording.
+//
 
 #if os(iOS)
 import Foundation
@@ -20,6 +25,7 @@ import SessionEngine
 import HeartRateKit
 import AlertKit
 import Persistence
+import SwiftData
 
 @MainActor
 @Observable
@@ -41,7 +47,7 @@ public final class SoloSparringModel {
     public private(set) var stage: Stage = .lobby
     public private(set) var bpm: Int?
     public private(set) var signal: HRSignalState = .disconnected
-    public private(set) var kind: WorkoutKind = .wrestling
+    public private(set) var kind: WorkoutKind = .jiujitsu
     /// The max HR the session's bands and rounds are resolved against.
     public private(set) var sessionHRMax = 0
     /// Good-signal readings since the session began.
@@ -76,6 +82,7 @@ public final class SoloSparringModel {
     private var sessionStart = Date()
     private var timeoutStart: Date?
     private var readingStarted = false
+    private var sourceStarted = false
     /// The session being recorded, or whose summary is on screen.
     private(set) var record: TrainingSessionRecord?
     private var buffer: HRBufferFile?
@@ -89,23 +96,53 @@ public final class SoloSparringModel {
         self.store = store
     }
 
+    /// Core Bluetooth restore identifier: the same string every launch, so
+    /// iOS hands the strap connection back after a background kill.
+    static let bluetoothRestoreIdentifier = "com.sphericalwave.flow.heart-rate"
+
+    /// The app's one model, made at launch. `simulatedHR` drives it from a
+    /// scripted spike instead of a strap (the Simulator has no Bluetooth).
+    public static func make(context: ModelContext, simulatedHR: Bool) -> SoloSparringModel {
+        let alerts = SystemAlertOutput()
+        let store = SessionStore(context: context)
+        // hrMax is set by the Spar screen before it can start anything. The
+        // simulated spike is shaped for a typical 190 max: it's a debug aid.
+        if simulatedHR, let zone = SparringPrescription().resolve(hrMax: 190) {
+            let mock = MockHeartRateSource(profile: .spike(baseline: zone.resetBPM - 8,
+                                                           peak: zone.ceilingBPM + 12,
+                                                           at: 15, duration: 12))
+            return SoloSparringModel(hrMax: 0, source: mock, ble: nil, alerts: alerts, store: store)
+        }
+        let ble = BLEHeartRateSource(restoreIdentifier: bluetoothRestoreIdentifier)
+        return SoloSparringModel(hrMax: 0, source: ble, ble: ble, alerts: alerts, store: store)
+    }
+
     // MARK: - Lifecycle
 
-    /// Screen visible: keep the display on and make sure the sensor is being read.
-    /// Reading starts once and never stops — cancelling an `AsyncStream`
-    /// consumer finishes the stream, so a restart would receive nothing.
-    /// The first call also recovers any session interrupted by an app kill.
-    public func activate() {
-        KeepAwake.set(true)
+    /// Call once at app launch, foreground or background. Starts reading the
+    /// sensor and resumes a session the app was killed during. Reading
+    /// starts once and never stops — cancelling an `AsyncStream` consumer
+    /// finishes the stream, so a restart would receive nothing.
+    public func launch() {
         guard !readingStarted else { return }
         readingStarted = true
-        // BLE: reconnect only a remembered strap; new straps are chosen in the pairing sheet.
-        if ble?.hasRememberedDevice ?? true {
-            Task { [source] in try? await source.start() }
-        }
         Task { await self.readSamples() }
         Task { await self.runClock() }
         Task { await self.recover() }
+    }
+
+    /// Screen visible: keep the display on and make sure the sensor is being read.
+    public func activate() {
+        KeepAwake.set(true)
+        launch()
+        startSource()
+    }
+
+    /// BLE: reconnect only a remembered strap; new straps are chosen in the pairing sheet.
+    private func startSource() {
+        guard !sourceStarted, ble?.hasRememberedDevice ?? true else { return }
+        sourceStarted = true
+        Task { [source] in try? await source.start() }
     }
 
     /// Leaving the tab doesn't stop a session; it keeps recording.
@@ -230,6 +267,7 @@ public final class SoloSparringModel {
             rounds = store.rounds(for: open.id)
             elapsed = Date().timeIntervalSince(open.startedAt)
             stage = .training
+            startSource()
         }
 
         await health.requestAuthorization()
@@ -266,9 +304,11 @@ public final class SoloSparringModel {
         signal = evaluator.state(now: sample.timestamp, connected: isConnected)
         guard isSessionActive else { return }
         let t = sample.timestamp.timeIntervalSince(sessionStart)
+        // No-contact readings are buffered too, flagged, so the session's
+        // length survives a slipped strap; they never count as heart rate.
+        buffer?.append(BufferedReading(date: sample.timestamp, bpm: sample.bpm, hasContact: signal == .good))
         if signal == .good {
             points.append(HRPoint(t: t, bpm: sample.bpm))
-            buffer?.append(date: sample.timestamp, bpm: sample.bpm)
         }
         guard stage == .sparring || stage == .timeout else { return }
         let signals = controller?.ingest(athlete: 0, bpm: sample.bpm, signalGood: signal == .good, t: t) ?? []

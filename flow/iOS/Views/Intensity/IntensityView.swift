@@ -18,6 +18,7 @@ struct IntensityView: View {
     @ObservedObject var viewModel: DashboardViewModel
     @Binding var window: DashboardViewModel.TimeWindow
     let refresh: () async -> Void
+    let openSpar: () -> Void
 
     @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil })
     private var endedSessions: [TrainingSessionRecord]
@@ -65,6 +66,7 @@ struct IntensityView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    PendingSessionsBanner(openSpar: openSpar)
                     if viewModel.intensities.isEmpty {
                         if viewModel.isLoading {
                             ProgressView("Loading workouts from Health…")
@@ -172,11 +174,11 @@ struct IntensityView: View {
             if tag != nil {
                 Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
             }
-            exportButton(workout, name: tag?.label ?? workout.activityType.name)
+            exportButton(workout, name: tag?.label ?? workout.brandName ?? workout.activityType.name)
             copyButton(workout)
             duplicateButton(workout)
         } label: {
-            WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
+            WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.brandName ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
         }
         .buttonStyle(.plain)

@@ -23,19 +23,14 @@ struct RootView: View {
     @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.week.rawValue
 
     @StateObject private var viewModel: DashboardViewModel
+    private let spar: SoloSparringModel
 
-    init(health: HealthKitService) {
+    init(health: HealthKitService, spar: SoloSparringModel) {
         _viewModel = StateObject(wrappedValue: DashboardViewModel(health: health))
+        self.spar = spar
     }
 
-    /// The Simulator has no Bluetooth, so sparring there runs on scripted heart rate.
-    private static let simulatedHR: Bool = {
-        #if targetEnvironment(simulator)
-        return true
-        #else
-        return false
-        #endif
-    }()
+    private static let sparTab = 3
 
     private var hrMax: Int {
         MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: maxHRFormula)
@@ -54,15 +49,15 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            SparView(hrMax: hrMax, simulatedHR: Self.simulatedHR)
+            SparView(hrMax: hrMax, model: spar)
                 .tabItem { Label("Spar", systemImage: "figure.martial.arts") }
-                .tag(3)
+                .tag(Self.sparTab)
 
-            OverviewView(viewModel: viewModel, refresh: refresh)
+            OverviewView(viewModel: viewModel, refresh: refresh, openSpar: openSpar)
                 .tabItem { Label("Overview", systemImage: "heart.text.square") }
                 .tag(0)
 
-            IntensityView(viewModel: viewModel, window: windowBinding, refresh: refresh)
+            IntensityView(viewModel: viewModel, window: windowBinding, refresh: refresh, openSpar: openSpar)
                 .tabItem { Label("Intensity", systemImage: "flame") }
                 .tag(1)
 
@@ -90,6 +85,10 @@ struct RootView: View {
             guard phase == .active else { return }
             Task { await HealthSessionSync.shared.syncPending(context: modelContext) }
         }
+    }
+
+    private func openSpar() {
+        selectedTab = Self.sparTab
     }
 
     private func refresh() async {

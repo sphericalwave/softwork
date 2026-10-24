@@ -155,12 +155,12 @@ public final class HealthSessionSync {
         let buffer = HRBufferFile(sessionID: id)
         await health.requestAuthorization()
         do {
-            if buffer.read().isEmpty {
+            if !buffer.read().contains(where: \.hasContact) {
                 let points = await health.heartRatePoints(from: start, to: end)
                 // Heart rate was recorded but can't be read back: keep the
                 // workout as it is rather than replace it without its readings.
                 if points.isEmpty, record.averageBPM != nil { throw EditError.readingsUnavailable }
-                try buffer.write(points.map { (start.addingTimeInterval($0.t), $0.bpm) })
+                try buffer.write(points.map { BufferedReading(date: start.addingTimeInterval($0.t), bpm: $0.bpm) })
             }
         } catch {
             inFlight.remove(id)
@@ -251,7 +251,7 @@ public final class HealthSessionSync {
         let summary = TrainingSummary(record: record, endingAt: end,
                                       points: Self.points(readings, since: record.startedAt),
                                       rounds: store.rounds(for: record.id), profile: profile)
-        if !readings.isEmpty { store.end(record, at: end, summary: summary) }
+        if readings.contains(where: \.hasContact) { store.end(record, at: end, summary: summary) }
         await perform(summary, record: record, buffer: buffer, store: store)
     }
 
@@ -313,14 +313,15 @@ public final class HealthSessionSync {
         return Date().timeIntervalSince(last) > staleAfter
     }
 
-    private static func lastActivity(of open: TrainingSessionRecord, readings: [(date: Date, bpm: Int)],
+    /// Counts no-contact readings: the session ran while the strap slipped.
+    private static func lastActivity(of open: TrainingSessionRecord, readings: [BufferedReading],
                                      rounds: [SparringRound]) -> Date {
-        [readings.last?.date, rounds.last.map { open.startedAt.addingTimeInterval($0.end) }, open.startedAt]
+        [BufferedReading.lastDate(readings), rounds.last.map { open.startedAt.addingTimeInterval($0.end) }, open.startedAt]
             .compactMap { $0 }.max() ?? open.startedAt
     }
 
-    static func points(_ readings: [(date: Date, bpm: Int)], since start: Date) -> [HRPoint] {
-        readings.map { HRPoint(t: $0.date.timeIntervalSince(start), bpm: $0.bpm) }
+    static func points(_ readings: [BufferedReading], since start: Date) -> [HRPoint] {
+        BufferedReading.points(readings, since: start)
     }
 }
 

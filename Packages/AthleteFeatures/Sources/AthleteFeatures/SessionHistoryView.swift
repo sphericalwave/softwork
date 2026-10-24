@@ -205,11 +205,9 @@ private struct SyncBadge: View {
 
 extension TrainingSessionRecord {
     /// The kind the session was tagged with at Start Training. Health only
-    /// keeps the activity type, and Jiu-Jitsu is saved there as Wrestling.
+    /// keeps the activity type, and Jiu-Jitsu is saved there as Martial Arts.
     public var kindLabel: String {
         if let kind = WorkoutKind(rawValue: kindRaw) { return kind.label }
-        // Tagged by a build with the Jiu-Jitsu kind before this one knew it.
-        if kindRaw == "jiujitsu" { return "Jiu-Jitsu" }
         return kindRaw.capitalized
     }
 
