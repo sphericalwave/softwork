@@ -24,6 +24,9 @@ struct WorkoutIntensity: Identifiable, Codable {
     var hasEstimatedHR: Bool? = nil
     /// Made with Duplicate To… from this workout. Optional for old caches too.
     var duplicatedFrom: UUID? = nil
+    /// `HKMetadataKeyWorkoutBrandName`, e.g. "Jiu-Jitsu" on a Martial Arts
+    /// workout flow saved. Optional for old caches too.
+    var brandName: String? = nil
 
     var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
@@ -65,7 +68,8 @@ final class WorkoutIntensityService {
                 avgPercentOfMax: avgPct,
                 hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil },
                 duplicatedFrom: (workout.metadata?[WorkoutDuplicateService.duplicatedFromKey] as? String)
-                    .flatMap(UUID.init(uuidString:))
+                    .flatMap(UUID.init(uuidString:)),
+                brandName: workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String
             ))
         }
         return out.sorted { $0.start > $1.start }

@@ -174,11 +174,11 @@ struct IntensityView: View {
             if tag != nil {
                 Button("Remove Tag", role: .destructive) { tags.setTag(nil, for: workout.id) }
             }
-            exportButton(workout, name: tag?.label ?? workout.activityType.name)
+            exportButton(workout, name: tag?.label ?? workout.brandName ?? workout.activityType.name)
             copyButton(workout)
             duplicateButton(workout)
         } label: {
-            WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.activityType.name,
+            WorkoutIntensityRow(intensity: workout, title: tag?.label ?? workout.brandName ?? workout.activityType.name,
                                 accessory: tag == nil ? "tag" : "tag.fill")
         }
         .buttonStyle(.plain)

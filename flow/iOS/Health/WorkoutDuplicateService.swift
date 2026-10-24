@@ -131,6 +131,9 @@ final class WorkoutDuplicateService {
         if let indoor = source.metadata?[HKMetadataKeyIndoorWorkout] {
             metadata[HKMetadataKeyIndoorWorkout] = indoor
         }
+        if let brand = source.metadata?[HKMetadataKeyWorkoutBrandName] {
+            metadata[HKMetadataKeyWorkoutBrandName] = brand
+        }
 
         do {
             _ = try await builder.beginCollection(at: start)
