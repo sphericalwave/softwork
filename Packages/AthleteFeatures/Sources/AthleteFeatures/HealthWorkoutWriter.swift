@@ -223,6 +223,7 @@ final class HealthWorkoutWriter {
 extension WorkoutKind {
     var activityType: HKWorkoutActivityType {
         switch self {
+        case .jiujitsu: return .martialArts
         case .wrestling: return .wrestling
         case .kickboxing: return .kickboxing
         }

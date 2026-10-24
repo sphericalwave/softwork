@@ -92,13 +92,22 @@ final class DashboardViewModel: ObservableObject {
     func duplicate(_ workout: WorkoutIntensity, session: TrainingSessionRecord?, tag: WorkoutTag?, title: String,
                    titleFor: @escaping @MainActor (UUID, HKWorkoutActivityType) -> String) -> DuplicateWorkoutViewModel {
         let kindRaw = session?.kindRaw ?? tag?.rawValue
-            ?? (workout.activityType == .kickboxing ? WorkoutKind.kickboxing : .wrestling).rawValue
+            ?? Self.kind(for: workout.activityType).rawValue
         let hrMax = session.map(\.hrMax).flatMap { $0 > 0 ? $0 : nil } ?? self.hrMax ?? 0
         return DuplicateWorkoutViewModel(source: .init(id: workout.id, start: workout.start, duration: workout.duration,
                                                        title: title, kindRaw: kindRaw, notes: session?.notes ?? "",
                                                        hrMax: hrMax),
                                          service: WorkoutDuplicateService(store: health.store),
                                          heartRate: HeartRateCopyService(store: health.store), titleFor: titleFor)
+    }
+
+    /// The training kind a Health activity type was saved from.
+    private static func kind(for type: HKWorkoutActivityType) -> WorkoutKind {
+        switch type {
+        case .kickboxing: return .kickboxing
+        case .martialArts: return .jiujitsu
+        default: return .wrestling
+        }
     }
 
     /// Deletes a flow session and its workout, heart rate and energy from Health.

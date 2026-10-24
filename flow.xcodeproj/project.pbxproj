@@ -83,6 +83,9 @@
 				iOS/Views/Overview/OverviewView.swift = (
 					ios,
 				);
+				iOS/Views/PendingSessions/PendingSessionsBanner.swift = (
+					ios,
+				);
 				iOS/Views/RootView.swift = (
 					ios,
 				);

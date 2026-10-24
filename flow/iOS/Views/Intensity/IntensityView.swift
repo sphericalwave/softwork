@@ -18,6 +18,7 @@ struct IntensityView: View {
     @ObservedObject var viewModel: DashboardViewModel
     @Binding var window: DashboardViewModel.TimeWindow
     let refresh: () async -> Void
+    let openSpar: () -> Void
 
     @Query(filter: #Predicate<TrainingSessionRecord> { $0.endedAt != nil })
     private var endedSessions: [TrainingSessionRecord]
@@ -65,6 +66,7 @@ struct IntensityView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    PendingSessionsBanner(openSpar: openSpar)
                     if viewModel.intensities.isEmpty {
                         if viewModel.isLoading {
                             ProgressView("Loading workouts from Health…")

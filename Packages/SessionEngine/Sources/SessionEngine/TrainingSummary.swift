@@ -22,7 +22,9 @@ public struct HRPoint: Sendable, Equatable, Codable {
 }
 
 /// The HealthKit-facing kind of a training session.
+/// Health has no jiu-jitsu activity type; Jiu-Jitsu is saved as Martial Arts.
 public enum WorkoutKind: String, Sendable, Codable, CaseIterable, Identifiable {
+    case jiujitsu
     case wrestling
     case kickboxing
 
@@ -30,6 +32,7 @@ public enum WorkoutKind: String, Sendable, Codable, CaseIterable, Identifiable {
 
     public var label: String {
         switch self {
+        case .jiujitsu: return "Jiu-Jitsu"
         case .wrestling: return "Wrestling"
         case .kickboxing: return "Kickboxing"
         }
