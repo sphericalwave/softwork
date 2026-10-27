@@ -18,8 +18,14 @@ extension View {
     /// overwritten by SwiftUI's own toolbar background, so instead the bar is made
     /// transparent and the image is drawn in SwiftUI across the top safe area
     /// (status bar + nav bar), above the scrolling content but under the bar items.
+    ///
+    /// The overlay is sized by the view it's attached to, so the view is made
+    /// to fill the screen first: a ScrollView whose only content is narrow
+    /// (e.g. a loading spinner) otherwise hugs it and the image draws as a
+    /// centred block instead of spanning the bar.
     public func brandedToolbars() -> some View {
         self
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
