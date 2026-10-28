@@ -47,15 +47,27 @@ final class DashboardViewModel: ObservableObject {
     @Published var todayActiveEnergy: Double?
 
     // Trends: one sample per day, a year back, bucketed by the Overview's
-    // D/W/M picker. Independent of the Intensity window.
+    // D/W/M picker.
     @Published var hrvSamples: [DatedSample] = []
     @Published var activeEnergySamples: [DatedSample] = []
 
     /// Covers the 12-month window (current month + 11 before).
     private static let trendDays = 366
 
-    // Intensity
-    @Published var intensities: [WorkoutIntensity] = []
+    // Intensity: every workout, newest first. A refresh loads the year the
+    // header charts cover; older ones load a page at a time as the list scrolls.
+    @Published var intensities: [WorkoutIntensity] = [] {
+        didSet {
+            peakHRSamples = Self.peakHRSamples(intensities)
+            averageHRSamples = Self.averageHRSamples(intensities)
+        }
+    }
+    @Published private(set) var peakHRSamples: [DatedSample] = []
+    @Published private(set) var averageHRSamples: [DatedSample] = []
+    /// False once a page comes back empty: Health has no older workouts.
+    @Published private(set) var canLoadOlder = true
+    private var isLoadingOlder = false
+    private static let olderPageSize = 25
 
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -123,7 +135,7 @@ final class DashboardViewModel: ObservableObject {
         todayActiveEnergy = todayActiveEnergy ?? snapshot.todayActiveEnergy
     }
 
-    func refresh(window: TimeWindow, hrMaxOverride: Int, formula: MaxHRFormula, context: ModelContext) async {
+    func refresh(hrMaxOverride: Int, formula: MaxHRFormula, context: ModelContext) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -151,11 +163,37 @@ final class DashboardViewModel: ObservableObject {
         do {
             let hrMax = MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: formula)
             self.hrMax = hrMax
-            intensities = try await intensityService.recentIntensities(in: window, hrMax: hrMax)
-            Self.cacheIntensities(intensities, for: window)
+            let start = Calendar.current.date(byAdding: .day, value: -Self.trendDays,
+                                              to: Calendar.current.startOfDay(for: .now)) ?? .now
+            var loaded = try await intensityService.intensities(since: start, hrMax: hrMax)
+            // Nothing this year: start the list with the most recent older page.
+            if loaded.isEmpty {
+                loaded = try await intensityService.intensities(before: start, limit: Self.olderPageSize, hrMax: hrMax)
+            }
+            intensities = loaded
+            canLoadOlder = true
+            Self.cacheIntensities(intensities)
         } catch {
             ErrorLog.shared.error("Dashboard", "Workout intensity load failed", error: error)
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Appends the next page of workouts older than the oldest listed.
+    func loadOlderIntensities() async {
+        guard canLoadOlder, !isLoadingOlder, !isLoading, let hrMax, let oldest = intensities.last?.start else { return }
+        isLoadingOlder = true
+        defer { isLoadingOlder = false }
+        do {
+            let page = try await intensityService.intensities(before: oldest, limit: Self.olderPageSize, hrMax: hrMax)
+            // A refresh replaced the list meanwhile; this page no longer follows it.
+            guard intensities.last?.start == oldest else { return }
+            intensities += page
+            // Not `count < pageSize`: deduping shadows can shorten a page that isn't the last.
+            canLoadOlder = !page.isEmpty
+        } catch {
+            ErrorLog.shared.error("Dashboard", "Older workout load failed", error: error)
+            canLoadOlder = false
         }
     }
 
@@ -163,24 +201,40 @@ final class DashboardViewModel: ObservableObject {
         daily.map { DatedSample(date: $0.key, value: $0.value) }
     }
 
-    /// Shows the last workouts computed for `window` until HealthKit answers.
-    func primeIntensities(for window: TimeWindow) {
-        guard let data = try? Data(contentsOf: Self.intensityCacheURL(window)),
-              let cached = try? JSONDecoder().decode([WorkoutIntensity].self, from: data) else {
-            intensities = []
-            return
+    /// Each workout's peak heart rate, for the header's `.max` chart.
+    private static func peakHRSamples(_ intensities: [WorkoutIntensity]) -> [DatedSample] {
+        intensities.compactMap { workout in
+            workout.peakBPM.map { DatedSample(date: workout.start, value: Double($0)) }
         }
+    }
+
+    /// One sample per day: the workouts' average heart rate weighted by
+    /// duration, so a 90-minute session counts more than a 10-minute one.
+    private static func averageHRSamples(_ intensities: [WorkoutIntensity]) -> [DatedSample] {
+        let calendar = Calendar.current
+        var days: [Date: (weighted: Double, seconds: TimeInterval)] = [:]
+        for workout in intensities {
+            guard let bpm = workout.avgBPM, workout.duration > 0 else { continue }
+            let day = calendar.startOfDay(for: workout.start)
+            days[day, default: (0, 0)].weighted += bpm * workout.duration
+            days[day, default: (0, 0)].seconds += workout.duration
+        }
+        return days.map { DatedSample(date: $0.key, value: $0.value.weighted / $0.value.seconds) }
+    }
+
+    /// Shows the last workouts loaded until HealthKit answers.
+    func primeIntensities() {
+        guard let data = try? Data(contentsOf: Self.intensityCacheURL),
+              let cached = try? JSONDecoder().decode([WorkoutIntensity].self, from: data) else { return }
         intensities = cached
     }
 
-    private static func cacheIntensities(_ intensities: [WorkoutIntensity], for window: TimeWindow) {
+    private static func cacheIntensities(_ intensities: [WorkoutIntensity]) {
         guard let data = try? JSONEncoder().encode(intensities) else { return }
-        try? data.write(to: intensityCacheURL(window), options: .atomic)
+        try? data.write(to: intensityCacheURL, options: .atomic)
     }
 
-    private static func intensityCacheURL(_ window: TimeWindow) -> URL {
-        URL.cachesDirectory.appending(path: "intensities-\(window.rawValue).json")
-    }
+    private static let intensityCacheURL = URL.cachesDirectory.appending(path: "intensities.json")
 
     private func saveSnapshot(context: ModelContext) {
         let snapshot = MetricSnapshot(latestHRV: latestHRV,

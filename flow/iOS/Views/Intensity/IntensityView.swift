@@ -2,8 +2,8 @@
 //  IntensityView.swift
 //  flow
 //
-//  Workout heart rate as a percentage of HR max: an aggregate zone bar plus
-//  a per-workout breakdown.
+//  Every workout's heart rate as a percentage of HR max, under a swipeable
+//  header of peak and average heart rate per D/W/M period.
 //
 
 import SwiftUI
@@ -13,10 +13,11 @@ import AthleteFeatures
 import HealthKit
 import SessionEngine
 import ZoneUI
+import SwCharts
 
 struct IntensityView: View {
     @ObservedObject var viewModel: DashboardViewModel
-    @Binding var window: DashboardViewModel.TimeWindow
+    @AppStorage("intensityChartPeriod") private var period: ChartPeriod = .week
     let refresh: () async -> Void
     let openSpar: () -> Void
 
@@ -52,20 +53,10 @@ struct IntensityView: View {
         }
     }
 
-    private var aggregate: [HRZone: TimeInterval] {
-        var totals: [HRZone: TimeInterval] = [:]
-        for intensity in viewModel.intensities {
-            for (zone, seconds) in intensity.zoneSeconds {
-                totals[zone, default: 0] += seconds
-            }
-        }
-        return totals
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                LazyVStack(spacing: 16) {
                     PendingSessionsBanner(openSpar: openSpar)
                     if viewModel.intensities.isEmpty {
                         if viewModel.isLoading {
@@ -74,11 +65,11 @@ struct IntensityView: View {
                         } else {
                             ContentUnavailableView("No workouts",
                                                    systemImage: "figure.run",
-                                                   description: Text("Workouts with heart-rate data in this window will appear here."))
+                                                   description: Text("Workouts with heart-rate data will appear here."))
                                 .padding(.top, 40)
                         }
                     } else {
-                        aggregateCard
+                        IntensityHeaderPager(viewModel: viewModel, period: period)
                         ForEach(viewModel.intensities) { workout in
                             if let session = session(for: workout) {
                                 NavigationLink {
@@ -107,6 +98,14 @@ struct IntensityView: View {
                                 taggableRow(workout)
                             }
                         }
+                        if viewModel.canLoadOlder {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                // Re-fires after each page and once a refresh finishes.
+                                .task(id: viewModel.isLoading ? nil : viewModel.intensities.last?.id) {
+                                    await viewModel.loadOlderIntensities()
+                                }
+                        }
                     }
                 }
                 .padding()
@@ -115,7 +114,7 @@ struct IntensityView: View {
             .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    WindowPicker(window: $window)
+                    PeriodPicker(selection: $period)
                 }
             }
             .refreshable { await refresh() }
@@ -221,17 +220,6 @@ struct IntensityView: View {
         }
         await refresh()
     }
-
-    private var aggregateCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Time in zone")
-                .font(.headline)
-            ZoneBar(zoneSeconds: aggregate)
-            ZoneLegend(zoneSeconds: aggregate)
-        }
-        .padding(14)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-    }
 }
 
 struct WorkoutIntensityRow: View {
@@ -308,21 +296,5 @@ extension HKWorkoutActivityType {
         case .boxing: return "Boxing"
         default: return "Workout"
         }
-    }
-}
-
-/// Day/Week/Month trailing-window selector for Intensity's principal slot.
-/// RootView reloads when it changes.
-struct WindowPicker: View {
-    @Binding var window: DashboardViewModel.TimeWindow
-
-    var body: some View {
-        Picker("Timeframe", selection: $window) {
-            ForEach(DashboardViewModel.TimeWindow.allCases) { w in
-                Text(w.label).tag(w)
-            }
-        }
-        .pickerStyle(.segmented)
-        .frame(width: 180)
     }
 }
