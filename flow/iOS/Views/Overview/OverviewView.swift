@@ -49,8 +49,9 @@ struct OverviewView: View {
             .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    PeriodPicker(selection: $period)
+                    NavBarSegmentedPicker(selection: $period)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .refreshable { await refresh() }
             .overlay(alignment: .top) {

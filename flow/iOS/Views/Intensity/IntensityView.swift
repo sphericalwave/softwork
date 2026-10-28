@@ -117,6 +117,7 @@ struct IntensityView: View {
                 ToolbarItem(placement: .principal) {
                     WindowPicker(window: $window)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .refreshable { await refresh() }
             .sheet(item: $copyTarget) { workout in
@@ -309,12 +310,15 @@ struct WindowPicker: View {
     @Binding var window: DashboardViewModel.TimeWindow
 
     var body: some View {
-        Picker("Timeframe", selection: $window) {
-            ForEach(DashboardViewModel.TimeWindow.allCases) { w in
-                Text(w.label).tag(w)
-            }
-        }
-        .pickerStyle(.segmented)
-        .frame(width: 180)
+        NavBarSegmentedPicker(selection: $window,
+                              options: DashboardViewModel.TimeWindow.allCases,
+                              label: \.label,
+                              accessibilityLabel: { w in
+                                  switch w {
+                                  case .day: return "Day"
+                                  case .week: return "Week"
+                                  case .month: return "Month"
+                                  }
+                              })
     }
 }

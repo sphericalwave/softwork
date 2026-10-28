@@ -22,7 +22,10 @@ extension View {
     /// The overlay is sized by the view it's attached to, so the view is made
     /// to fill the screen first: a ScrollView whose only content is narrow
     /// (e.g. a loading spinner) otherwise hugs it and the image draws as a
-    /// centred block instead of spanning the bar.
+    /// centred block instead of spanning the bar. The image also takes its
+    /// width from the layout, not a measured proxy width, and ignores the
+    /// horizontal safe area, so it reaches both screen edges whatever the
+    /// content or window size.
     public func brandedToolbars() -> some View {
         self
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -33,8 +36,9 @@ extension View {
                 GeometryReader { proxy in
                     Image("NavBar")
                         .resizable()
-                        .frame(width: proxy.size.width, height: proxy.safeAreaInsets.top)
-                        .ignoresSafeArea(edges: .top)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: proxy.safeAreaInsets.top)
+                        .ignoresSafeArea(edges: [.top, .horizontal])
                 }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
