@@ -27,6 +27,9 @@ struct WorkoutIntensity: Identifiable, Codable {
     /// `HKMetadataKeyWorkoutBrandName`, e.g. "Jiu-Jitsu" on a Martial Arts
     /// workout flow saved. Optional for old caches too.
     var brandName: String? = nil
+    /// Active energy burned during the workout, kcal; nil when Health has none.
+    /// Optional for old caches too.
+    var activeKcal: Double? = nil
 
     var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
@@ -69,7 +72,8 @@ final class WorkoutIntensityService {
                 hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil },
                 duplicatedFrom: (workout.metadata?[WorkoutDuplicateService.duplicatedFromKey] as? String)
                     .flatMap(UUID.init(uuidString:)),
-                brandName: workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String
+                brandName: workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String,
+                activeKcal: try? await activeKcal(of: workout)
             ))
         }
         return out.sorted { $0.start > $1.start }
@@ -84,6 +88,25 @@ final class WorkoutIntensityService {
                                       limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, error in
                 if let error { cont.resume(throwing: error); return }
                 cont.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            store.execute(query)
+        }
+    }
+
+    /// The workout's own active energy statistic, else the sum of active energy
+    /// samples over its interval (for workouts saved without associated samples).
+    private func activeKcal(of workout: HKWorkout) async throws -> Double? {
+        let type = HKQuantityType(.activeEnergyBurned)
+        if let sum = workout.statistics(for: type)?.sumQuantity() {
+            return sum.doubleValue(for: .kilocalorie())
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate)
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Double?, Error>) in
+            let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate,
+                                          options: .cumulativeSum) { _, stats, error in
+                if let error = error as? HKError, error.code == .errorNoData { cont.resume(returning: nil); return }
+                if let error { cont.resume(throwing: error); return }
+                cont.resume(returning: stats?.sumQuantity()?.doubleValue(for: .kilocalorie()))
             }
             store.execute(query)
         }
