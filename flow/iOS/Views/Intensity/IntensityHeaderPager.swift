@@ -62,7 +62,7 @@ struct IntensityHeaderPager: View {
                         selectable: false)
     }
 
-    private static func bpm(_ value: Double) -> String {
+    nonisolated private static func bpm(_ value: Double) -> String {
         "\(Int(value.rounded())) bpm"
     }
 
