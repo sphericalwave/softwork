@@ -60,10 +60,12 @@ final class DashboardViewModel: ObservableObject {
         didSet {
             peakHRSamples = Self.peakHRSamples(intensities)
             averageHRSamples = Self.averageHRSamples(intensities)
+            zoneMinuteSamples = Self.zoneMinuteSamples(intensities)
         }
     }
     @Published private(set) var peakHRSamples: [DatedSample] = []
     @Published private(set) var averageHRSamples: [DatedSample] = []
+    @Published private(set) var zoneMinuteSamples: [HRZone: [DatedSample]] = [:]
     /// False once a page comes back empty: Health has no older workouts.
     @Published private(set) var canLoadOlder = true
     private var isLoadingOlder = false
@@ -220,6 +222,19 @@ final class DashboardViewModel: ObservableObject {
             days[day, default: (0, 0)].seconds += workout.duration
         }
         return days.map { DatedSample(date: $0.key, value: $0.value.weighted / $0.value.seconds) }
+    }
+
+    /// Minutes in each zone per workout with heart rate. Every zone gets a
+    /// sample (0 if unvisited) so a period with workouts reads 0, not a gap.
+    private static func zoneMinuteSamples(_ intensities: [WorkoutIntensity]) -> [HRZone: [DatedSample]] {
+        var out: [HRZone: [DatedSample]] = [:]
+        for workout in intensities where workout.totalZonedSeconds > 0 {
+            for zone in HRZone.allCases {
+                out[zone, default: []].append(DatedSample(date: workout.start,
+                                                          value: (workout.zoneSeconds[zone] ?? 0) / 60))
+            }
+        }
+        return out
     }
 
     /// Shows the last workouts loaded until HealthKit answers.

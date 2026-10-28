@@ -80,6 +80,9 @@
 				iOS/Views/Intensity/IntensityView.swift = (
 					ios,
 				);
+				iOS/Views/Intensity/ZoneTimeChart.swift = (
+					ios,
+				);
 				iOS/Views/Overview/MetricTile.swift = (
 					ios,
 				);

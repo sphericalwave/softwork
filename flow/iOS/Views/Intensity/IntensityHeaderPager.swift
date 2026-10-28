@@ -4,7 +4,7 @@
 //
 //  Swipeable header for Intensity, styled after fitWrench's Food dash pager:
 //  page 0 = peak workout heart rate, page 1 = average workout heart rate,
-//  both per D/W/M period. The charts aren't selectable so a drag swipes pages.
+//  page 2 = minutes in each zone, all per D/W/M period. The charts aren't selectable so a drag swipes pages.
 //
 
 import SwiftUI
@@ -22,7 +22,7 @@ struct IntensityHeaderPager: View {
     @ScaledMetric(relativeTo: .body) private var fallbackHeight: CGFloat = 230
     private var cardHeight: CGFloat { measuredHeight ?? fallbackHeight }
 
-    private let pageNames = ["Peak heart rate", "Average heart rate"]
+    private let pageNames = ["Peak heart rate", "Average heart rate", "Time in zone"]
 
     var body: some View {
         VStack(spacing: 4) {
@@ -33,6 +33,9 @@ struct IntensityHeaderPager: View {
                 averageChart
                     .frame(maxHeight: .infinity, alignment: .top)
                     .tag(1)
+                ZoneTimeChart(samples: viewModel.zoneMinuteSamples, period: period)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: cardHeight)
