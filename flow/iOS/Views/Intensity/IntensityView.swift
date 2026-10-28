@@ -257,7 +257,8 @@ struct WorkoutIntensityRow: View {
             }
             ZoneBar(zoneSeconds: intensity.zoneSeconds)
             HStack {
-                Text("\(Int(intensity.duration / 60)) min")
+                Text(minutesAndEnergy)
+                    .lineLimit(1)
                 Spacer()
                 if intensity.hasEstimatedHR == true || intensity.duplicatedFrom != nil {
                     Label("Estimated", systemImage: "waveform.path.ecg")
@@ -273,6 +274,13 @@ struct WorkoutIntensityRow: View {
         .padding(14)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .contentShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// "90 min · 612 kcal"; energy left off when Health has none for the workout.
+    private var minutesAndEnergy: String {
+        let minutes = "\(Int(intensity.duration / 60)) min"
+        guard let kcal = intensity.activeKcal, kcal.rounded() >= 1 else { return minutes }
+        return "\(minutes) · \(Int(kcal.rounded())) kcal"
     }
 }
 
