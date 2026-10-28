@@ -74,6 +74,9 @@
 				iOS/Views/HeartRateCopy/CopyHeartRateView.swift = (
 					ios,
 				);
+				iOS/Views/Intensity/IntensityHeaderPager.swift = (
+					ios,
+				);
 				iOS/Views/Intensity/IntensityView.swift = (
 					ios,
 				);
