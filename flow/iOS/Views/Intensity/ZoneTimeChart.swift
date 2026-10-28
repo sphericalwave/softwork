@@ -120,7 +120,7 @@ struct ZoneTimeChart: View {
         .frame(maxHeight: .infinity)
     }
 
-    private static func midpoint(of bucket: PeriodBucket) -> Date {
+    nonisolated private static func midpoint(of bucket: PeriodBucket) -> Date {
         bucket.start.addingTimeInterval(bucket.end.timeIntervalSince(bucket.start) / 2)
     }
 
