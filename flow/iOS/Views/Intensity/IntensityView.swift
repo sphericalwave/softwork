@@ -114,8 +114,9 @@ struct IntensityView: View {
             .brandedToolbars()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    PeriodPicker(selection: $period)
+                    NavBarSegmentedPicker(selection: $period)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .refreshable { await refresh() }
             .sheet(item: $copyTarget) { workout in
