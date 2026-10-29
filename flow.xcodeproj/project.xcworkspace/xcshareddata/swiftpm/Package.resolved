@@ -1,5 +1,5 @@
 {
-  "originHash" : "40148ba341223bf24dace900300216f4e8fc08ec1c9fae34e18576ff46842b02",
+  "originHash" : "5461af18f4bcede44f635e60d8126d02209216894e9fe4ad2f7b548a0c732972",
   "pins" : [
     {
       "identity" : "audioclipkit",
@@ -26,6 +26,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "9c191e98ad4165c64c9fb67fff9c3c2e1cf6fa3f"
+      }
+    },
+    {
+      "identity" : "swcharts",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sphericalwave/SwCharts.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "d1d2a19128c2c0b6b436fdb8b20d19c4ad50b0de"
       }
     },
     {

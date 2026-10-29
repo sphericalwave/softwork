@@ -27,6 +27,13 @@ struct WorkoutIntensity: Identifiable, Codable {
     /// `HKMetadataKeyWorkoutBrandName`, e.g. "Jiu-Jitsu" on a Martial Arts
     /// workout flow saved. Optional for old caches too.
     var brandName: String? = nil
+    /// Active energy burned during the workout, kcal; nil when Health has none.
+    /// Optional for old caches too.
+    var activeKcal: Double? = nil
+    /// Highest and mean bpm over the workout, for the header charts; nil
+    /// without heart rate. Optional for old caches too.
+    var peakBPM: Int? = nil
+    var avgBPM: Double? = nil
 
     var activityType: HKWorkoutActivityType { HKWorkoutActivityType(rawValue: activityTypeRaw) ?? .other }
     var totalZonedSeconds: TimeInterval { zoneSeconds.values.reduce(0, +) }
@@ -41,12 +48,22 @@ final class WorkoutIntensityService {
         self.store = store
     }
 
-    /// Workouts started within `window`, newest first, each with its
+    /// Workouts started since `start`, newest first, each with its
     /// zone distribution computed against `hrMax`.
-    func recentIntensities(in window: DashboardViewModel.TimeWindow, hrMax: Int) async throws -> [WorkoutIntensity] {
-        let (start, end) = window.dates
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        let workouts = try await workouts(predicate: predicate).withoutBioMechanicShadows()
+    func intensities(since start: Date, hrMax: Int) async throws -> [WorkoutIntensity] {
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: nil, options: .strictStartDate)
+        return try await intensities(predicate: predicate, limit: HKObjectQueryNoLimit, hrMax: hrMax)
+    }
+
+    /// Up to `limit` workouts started before `date`, newest first: the next
+    /// page of the list.
+    func intensities(before date: Date, limit: Int, hrMax: Int) async throws -> [WorkoutIntensity] {
+        let predicate = HKQuery.predicateForSamples(withStart: nil, end: date, options: .strictStartDate)
+        return try await intensities(predicate: predicate, limit: limit, hrMax: hrMax)
+    }
+
+    private func intensities(predicate: NSPredicate, limit: Int, hrMax: Int) async throws -> [WorkoutIntensity] {
+        let workouts = try await workouts(predicate: predicate, limit: limit).withoutBioMechanicShadows()
 
         var out: [WorkoutIntensity] = []
         for workout in workouts {
@@ -54,10 +71,11 @@ final class WorkoutIntensityService {
             let readings = samples.map { (date: $0.startDate, bpm: Self.bpm($0)) }
             let zones = ZoneBucketer.distribution(samples: readings, hrMax: hrMax)
             var avgPct: Double? = nil
+            var meanBpm: Double? = nil
             if !readings.isEmpty {
                 let sumBpm = readings.map(\.bpm).reduce(0, +)
-                let meanBpm = Double(sumBpm) / Double(readings.count)
-                avgPct = meanBpm / Double(hrMax) * 100
+                meanBpm = Double(sumBpm) / Double(readings.count)
+                avgPct = meanBpm.map { $0 / Double(hrMax) * 100 }
             }
             out.append(WorkoutIntensity(
                 id: workout.uuid,
@@ -69,7 +87,10 @@ final class WorkoutIntensityService {
                 hasEstimatedHR: samples.contains { $0.metadata?[HeartRateCopyService.estimatedKey] != nil },
                 duplicatedFrom: (workout.metadata?[WorkoutDuplicateService.duplicatedFromKey] as? String)
                     .flatMap(UUID.init(uuidString:)),
-                brandName: workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String
+                brandName: workout.metadata?[HKMetadataKeyWorkoutBrandName] as? String,
+                activeKcal: try? await activeKcal(of: workout),
+                peakBPM: readings.map(\.bpm).max(),
+                avgBPM: meanBpm
             ))
         }
         return out.sorted { $0.start > $1.start }
@@ -77,13 +98,32 @@ final class WorkoutIntensityService {
 
     // MARK: - Queries
 
-    private func workouts(predicate: NSPredicate) async throws -> [HKWorkout] {
+    private func workouts(predicate: NSPredicate, limit: Int) async throws -> [HKWorkout] {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[HKWorkout], Error>) in
             let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate,
-                                      limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, error in
+                                      limit: limit, sortDescriptors: [sort]) { _, samples, error in
                 if let error { cont.resume(throwing: error); return }
                 cont.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            store.execute(query)
+        }
+    }
+
+    /// The workout's own active energy statistic, else the sum of active energy
+    /// samples over its interval (for workouts saved without associated samples).
+    private func activeKcal(of workout: HKWorkout) async throws -> Double? {
+        let type = HKQuantityType(.activeEnergyBurned)
+        if let sum = workout.statistics(for: type)?.sumQuantity() {
+            return sum.doubleValue(for: .kilocalorie())
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate)
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Double?, Error>) in
+            let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate,
+                                          options: .cumulativeSum) { _, stats, error in
+                if let error = error as? HKError, error.code == .errorNoData { cont.resume(returning: nil); return }
+                if let error { cont.resume(throwing: error); return }
+                cont.resume(returning: stats?.sumQuantity()?.doubleValue(for: .kilocalorie()))
             }
             store.execute(query)
         }

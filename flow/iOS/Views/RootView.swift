@@ -20,7 +20,6 @@ struct RootView: View {
     @AppStorage("flowSelectedTab") private var selectedTab = 0
     @AppStorage("hrMaxOverride") private var hrMaxOverride = 0
     @AppStorage("maxHRFormula") private var maxHRFormula: MaxHRFormula = .tanaka
-    @AppStorage("dashboardWindow") private var windowRaw = DashboardViewModel.TimeWindow.week.rawValue
 
     @StateObject private var viewModel: DashboardViewModel
     private let spar: SoloSparringModel
@@ -36,17 +35,6 @@ struct RootView: View {
         MaxHeartRate.effective(override: hrMaxOverride, age: health.ageInYears(), formula: maxHRFormula)
     }
 
-    private var window: DashboardViewModel.TimeWindow {
-        DashboardViewModel.TimeWindow(rawValue: windowRaw) ?? .week
-    }
-
-    private var windowBinding: Binding<DashboardViewModel.TimeWindow> {
-        Binding(
-            get: { window },
-            set: { windowRaw = $0.rawValue }
-        )
-    }
-
     var body: some View {
         TabView(selection: $selectedTab) {
             SparView(hrMax: hrMax, model: spar)
@@ -57,7 +45,7 @@ struct RootView: View {
                 .tabItem { Label("Overview", systemImage: "heart.text.square") }
                 .tag(0)
 
-            IntensityView(viewModel: viewModel, window: windowBinding, refresh: refresh, openSpar: openSpar)
+            IntensityView(viewModel: viewModel, refresh: refresh, openSpar: openSpar)
                 .tabItem { Label("Intensity", systemImage: "flame") }
                 .tag(1)
 
@@ -67,17 +55,13 @@ struct RootView: View {
         }
         .task {
             viewModel.primeFromCache(snapshots.first)
-            viewModel.primeIntensities(for: window)
+            viewModel.primeIntensities()
             do {
                 try await health.requestAuthorization()
             } catch {
                 ErrorLog.shared.error("Health", "Health authorization request failed", error: error)
             }
             await refresh()
-        }
-        .onChange(of: windowRaw) { _, _ in
-            viewModel.primeIntensities(for: window)
-            Task { await refresh() }
         }
         // Training sessions not yet in Health are retried at launch and on
         // every return to the foreground, whichever tab is showing.
@@ -92,6 +76,6 @@ struct RootView: View {
     }
 
     private func refresh() async {
-        await viewModel.refresh(window: window, hrMaxOverride: hrMaxOverride, formula: maxHRFormula, context: modelContext)
+        await viewModel.refresh(hrMaxOverride: hrMaxOverride, formula: maxHRFormula, context: modelContext)
     }
 }

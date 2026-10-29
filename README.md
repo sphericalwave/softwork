@@ -7,7 +7,8 @@ intensity from HealthKit. Read-only — flow writes nothing back to Health.
 
 - **Overview tab** — latest HRV and resting HR with age, today's active energy,
   and 7/30/90-day trend charts for HRV and active energy.
-- **Intensity tab** — recent workouts broken into the five classic HR
+- **Intensity tab** — a swipeable D/W/M header of peak and average workout
+  heart rate, over every workout (older ones load as you scroll) broken into the five classic HR
   zones (Recovery through Max, 50%–100%+ of HR max) with time-in-zone and
   average intensity per workout. This is the app's distinctive capability —
   `WorkoutIntensityService` pulls each workout's HR samples and buckets
