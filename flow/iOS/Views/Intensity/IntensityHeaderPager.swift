@@ -52,8 +52,7 @@ struct IntensityHeaderPager: View {
                         samples: viewModel.peakHRSamples,
                         period: period,
                         aggregation: .max,
-                        valueLabel: Self.bpm,
-                        selectable: false)
+                        valueLabel: Self.bpm)
     }
 
     private var averageChart: some View {
@@ -61,8 +60,7 @@ struct IntensityHeaderPager: View {
                         samples: viewModel.averageHRSamples,
                         period: period,
                         aggregation: .average,
-                        valueLabel: Self.bpm,
-                        selectable: false)
+                        valueLabel: Self.bpm)
     }
 
     nonisolated private static func bpm(_ value: Double) -> String {
